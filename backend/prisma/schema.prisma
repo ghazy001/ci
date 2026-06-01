@@ -1,0 +1,765 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TESTER
+}
+
+enum ProjectMemberRole {
+  OWNER
+  TESTER
+}
+
+enum WorkItemType {
+  FEATURE
+  BUG
+  IMPROVEMENT
+  TASK
+  USER_STORY
+}
+
+enum WorkItemSource {
+  MANUAL
+  JIRA
+  SPEC_DOCUMENT
+}
+
+enum WorkItemStatus {
+  DRAFT
+  READY_FOR_AI
+  PROCESSING
+  ANALYZED
+  FAILED
+}
+
+enum TestCaseGenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum TestCaseStatus {
+  GENERATED
+  EDITED
+  APPROVED
+  DECLINED
+}
+
+enum TestCaseType {
+  FUNCTIONAL
+  VALIDATION
+  NEGATIVE
+  EDGE_CASE
+  SECURITY
+  UI
+  INTEGRATION
+  REGRESSION
+}
+
+enum TestCasePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AutomationScriptGenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AutomationScriptStatus {
+  GENERATED
+  EDITED
+  APPROVED
+  DECLINED
+  REMOVED
+}
+
+enum AutomationFramework {
+  PLAYWRIGHT_TS
+  PLAYWRIGHT_PYTHON
+  CYPRESS_TS
+  SELENIUM_JAVA
+}
+
+enum BrowserTarget {
+  CHROMIUM
+  FIREFOX
+  WEBKIT
+  CHROME
+  EDGE
+}
+
+enum AutomationScriptExecutionStatus {
+  QUEUED
+  RUNNING
+  PASSED
+  FAILED
+  TIMED_OUT
+  CANCELED
+}
+
+enum DefectReportStatus {
+  OPEN
+  TRIAGED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  REJECTED
+}
+
+enum DefectSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TestSuiteReportStatus {
+  PASSED
+  FAILED
+  PARTIAL
+}
+
+enum ScheduledTestRunStatus {
+  ACTIVE
+  PAUSED
+  DISABLED
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  LOGIN_FAILED
+
+  USER_CREATED
+  USER_UPDATED
+  USER_ACTIVATED
+  USER_DEACTIVATED
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  PROFILE_UPDATED
+
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  PROJECT_DELETED
+  PROJECT_MEMBER_ADDED
+  PROJECT_MEMBER_REMOVED
+
+  WORK_ITEM_CREATED
+  WORK_ITEM_UPDATED
+  WORK_ITEM_DELETED
+  WORK_ITEM_IMPORTED_JIRA
+  WORK_ITEM_IMPORTED_SPEC_DOCUMENT
+
+  TEST_CASE_GENERATION_STARTED
+  TEST_CASE_GENERATION_COMPLETED
+  TEST_CASE_GENERATION_FAILED
+  TEST_CASE_APPROVED
+  TEST_CASE_DECLINED
+  TEST_CASE_EDITED
+
+  AUTOMATION_SCRIPT_GENERATION_STARTED
+  AUTOMATION_SCRIPT_GENERATION_COMPLETED
+  AUTOMATION_SCRIPT_GENERATION_FAILED
+  AUTOMATION_SCRIPT_APPROVED
+  AUTOMATION_SCRIPT_DECLINED
+  AUTOMATION_SCRIPT_EDITED
+  AUTOMATION_SCRIPT_REMOVED
+  AUTOMATION_SCRIPT_DOWNLOADED
+
+  SCRIPT_EXECUTION_STARTED
+  SCRIPT_EXECUTION_PASSED
+  SCRIPT_EXECUTION_FAILED
+  SCRIPT_EXECUTION_TIMED_OUT
+  SCRIPT_EXECUTION_CANCELED
+
+  DEFECT_REPORT_CREATED
+  DEFECT_REPORT_UPDATED
+  DEFECT_REPORT_PDF_DOWNLOADED
+
+  TEST_SUITE_REPORT_CREATED
+  TEST_SUITE_REPORT_PDF_DOWNLOADED
+
+  SCHEDULED_RUN_CREATED
+  SCHEDULED_RUN_UPDATED
+  SCHEDULED_RUN_PAUSED
+  SCHEDULED_RUN_RESUMED
+  SCHEDULED_RUN_DISABLED
+
+  ANALYTICS_QUESTION_ASKED
+}
+
+enum AuditEntityType {
+  AUTH
+  USER
+  PROJECT
+  PROJECT_MEMBER
+  WORK_ITEM
+  JIRA
+  SPEC_DOCUMENT
+  TEST_CASE
+  TEST_CASE_GENERATION
+  AUTOMATION_SCRIPT
+  AUTOMATION_SCRIPT_GENERATION
+  SCRIPT_EXECUTION
+  DEFECT_REPORT
+  TEST_SUITE_REPORT
+  SCHEDULED_TEST_RUN
+  ANALYTICS_ASSISTANT
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model User {
+  id                     String    @id @default(uuid())
+  fullName               String
+  email                  String    @unique
+  passwordHash           String
+  role                   Role      @default(TESTER)
+  isActive               Boolean   @default(true)
+  lastLoginAt            DateTime?
+  refreshTokenHash       String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  mustChangePassword     Boolean   @default(true)
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
+  profilePicture         String?
+
+  createdProjects             Project[]                    @relation("ProjectCreator")
+  projectMembers              ProjectMember[]
+  WorkItem                    WorkItem[]
+  JiraConnection              JiraConnection[]
+  testCaseGenerations         TestCaseGeneration[]
+  generatedTestCases          TestCase[]
+  automationScriptGenerations AutomationScriptGeneration[]
+  generatedAutomationScripts  AutomationScript[]
+  automationScriptExecutions  AutomationScriptExecution[]
+  defectReports               DefectReport[]
+  testSuiteReports            TestSuiteReport[]
+  scheduledTestRuns           ScheduledTestRun[]
+  auditLogs                   AuditLog[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy         User               @relation("ProjectCreator", fields: [createdById], references: [id])
+  members           ProjectMember[]
+  WorkItem          WorkItem[]
+  defectReports     DefectReport[]
+  testSuiteReports  TestSuiteReport[]
+  scheduledTestRuns ScheduledTestRun[]
+
+  @@unique([name])
+}
+
+model ProjectMember {
+  id         String            @id @default(uuid())
+  projectId  String
+  userId     String
+  role       ProjectMemberRole @default(TESTER)
+  assignedAt DateTime          @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model WorkItem {
+  id          String @id @default(uuid())
+  projectId   String
+  createdById String
+
+  type   WorkItemType
+  source WorkItemSource
+  status WorkItemStatus @default(DRAFT)
+
+  title              String
+  description        String? @db.Text
+  acceptanceCriteria Json?
+  businessRules      Json?
+  priority           String?
+
+  externalSystem    String?
+  externalCloudId   String?
+  externalRef       String?
+  rawPayload        Json?
+  normalizedContent Json?
+  metadata          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project                     Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy                   User                         @relation(fields: [createdById], references: [id])
+  testCaseGenerations         TestCaseGeneration[]
+  testCases                   TestCase[]
+  automationScriptGenerations AutomationScriptGeneration[]
+  automationScripts           AutomationScript[]
+  defectReports               DefectReport[]
+  testSuiteReports            TestSuiteReport[]
+  scheduledTestRuns           ScheduledTestRun[]
+
+  @@unique([projectId, externalSystem, externalCloudId, externalRef])
+  @@index([projectId])
+  @@index([createdById])
+  @@index([source])
+}
+
+model TestCaseGeneration {
+  id            String @id @default(uuid())
+  workItemId    String
+  requestedById String
+
+  status TestCaseGenerationStatus @default(PENDING)
+
+  provider         String?
+  model            String?
+  promptVersion    String?
+  generationMethod String?
+
+  inputHash    String
+  options      Json?
+  warnings     Json?
+  errorMessage String? @db.Text
+  aiTrace      Json?
+
+  confidence Float?
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  workItem    WorkItem   @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  requestedBy User       @relation(fields: [requestedById], references: [id])
+  testCases   TestCase[]
+
+  @@unique([workItemId, inputHash])
+  @@index([workItemId])
+  @@index([requestedById])
+  @@index([status])
+}
+
+model TestCase {
+  id            String  @id @default(uuid())
+  workItemId    String
+  generationId  String?
+  generatedById String
+
+  title     String
+  objective String?          @db.Text
+  type      TestCaseType
+  priority  TestCasePriority @default(MEDIUM)
+  status    TestCaseStatus   @default(GENERATED)
+
+  preconditions  Json?
+  steps          Json
+  expectedResult String @db.Text
+  testData       Json?
+  tags           Json?
+  coverage       Json?
+
+  aiTrace     Json?
+  reviewNotes String? @db.Text
+
+  approvedAt DateTime?
+  declinedAt DateTime?
+  editedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workItem                    WorkItem                     @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  generation                  TestCaseGeneration?          @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  generatedBy                 User                         @relation(fields: [generatedById], references: [id])
+  automationScriptGenerations AutomationScriptGeneration[]
+  automationScripts           AutomationScript[]
+  defectReports               DefectReport[]
+
+  @@index([workItemId])
+  @@index([generationId])
+  @@index([generatedById])
+  @@index([status])
+  @@index([type])
+}
+
+model AutomationScriptGeneration {
+  id            String @id @default(uuid())
+  testCaseId    String
+  workItemId    String
+  requestedById String
+
+  status AutomationScriptGenerationStatus @default(PENDING)
+
+  framework   AutomationFramework
+  browser     BrowserTarget?
+  targetUrl   String
+  environment String?
+
+  context        Json?
+  pageInspection Json?
+  warnings       Json?
+  errorMessage   String? @db.Text
+
+  provider         String?
+  model            String?
+  promptVersion    String?
+  generationMethod String?
+  confidence       Float?
+
+  aiTrace Json?
+
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  testCase    TestCase           @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  workItem    WorkItem           @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  requestedBy User               @relation(fields: [requestedById], references: [id])
+  scripts     AutomationScript[]
+
+  @@index([testCaseId])
+  @@index([workItemId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([framework])
+}
+
+model AutomationScript {
+  id            String @id @default(uuid())
+  generationId  String
+  testCaseId    String
+  workItemId    String
+  generatedById String
+
+  status    AutomationScriptStatus @default(GENERATED)
+  framework AutomationFramework
+
+  fileName    String
+  language    String
+  code        String  @db.Text
+  explanation String? @db.Text
+
+  dependencies  Json?
+  setupNotes    Json?
+  selectorsUsed Json?
+  warnings      Json?
+  aiTrace       Json?
+
+  reviewNotes String? @db.Text
+
+  approvedAt DateTime?
+  declinedAt DateTime?
+  editedAt   DateTime?
+  removedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  generation        AutomationScriptGeneration  @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  testCase          TestCase                    @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  workItem          WorkItem                    @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  generatedBy       User                        @relation(fields: [generatedById], references: [id])
+  executions        AutomationScriptExecution[]
+  defectReports     DefectReport[]
+  testSuiteReports  TestSuiteReport[]
+  scheduledTestRuns ScheduledTestRun[]
+
+  @@index([generationId])
+  @@index([testCaseId])
+  @@index([workItemId])
+  @@index([generatedById])
+  @@index([status])
+  @@index([framework])
+}
+
+model AutomationScriptExecution {
+  id            String @id @default(uuid())
+  scriptId      String
+  testCaseId    String
+  workItemId    String
+  requestedById String
+
+  status    AutomationScriptExecutionStatus @default(QUEUED)
+  framework AutomationFramework
+  browser   BrowserTarget?
+
+  targetUrl   String?
+  environment String?
+  variables   Json?
+
+  command  String?
+  exitCode Int?
+
+  stdout    String? @db.Text
+  stderr    String? @db.Text
+  logs      Json?
+  artifacts Json?
+
+  errorMessage String? @db.Text
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  script      AutomationScript @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  requestedBy User             @relation(fields: [requestedById], references: [id])
+
+  defectReport     DefectReport?
+  suiteReportItems TestSuiteReportItem[]
+
+  @@index([scriptId])
+  @@index([testCaseId])
+  @@index([workItemId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([framework])
+}
+
+model JiraConnection {
+  id           String    @id @default(uuid())
+  userId       String
+  cloudId      String
+  siteName     String?
+  siteUrl      String?
+  accessToken  String
+  refreshToken String
+  scope        String?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cloudId])
+  @@index([userId])
+}
+
+model DefectReport {
+  id String @id @default(uuid())
+
+  projectId   String
+  workItemId  String
+  testCaseId  String
+  scriptId    String
+  executionId String @unique
+  createdById String
+
+  title    String
+  summary  String             @db.Text
+  severity DefectSeverity     @default(MEDIUM)
+  status   DefectReportStatus @default(OPEN)
+
+  failureReason     String?        @db.Text
+  reproductionSteps Json?
+  environment       String?
+  browser           BrowserTarget?
+  targetUrl         String?
+
+  command       String?
+  exitCode      Int?
+  stdoutExcerpt String? @db.Text
+  stderrExcerpt String? @db.Text
+  logs          Json?
+  artifacts     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItem  WorkItem                  @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  testCase  TestCase                  @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+  script    AutomationScript          @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  execution AutomationScriptExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  createdBy User                      @relation(fields: [createdById], references: [id])
+
+  @@index([projectId])
+  @@index([workItemId])
+  @@index([testCaseId])
+  @@index([scriptId])
+  @@index([createdById])
+  @@index([status])
+  @@index([severity])
+}
+
+model TestSuiteReport {
+  id String @id @default(uuid())
+
+  projectId     String
+  workItemId    String?
+  scriptId      String?
+  requestedById String
+
+  title  String
+  status TestSuiteReportStatus
+
+  total    Int
+  passed   Int
+  failed   Int
+  timedOut Int
+  canceled Int
+  running  Int
+  queued   Int
+
+  passRate   Float
+  durationMs Int?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  summary   Json?
+  artifacts Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItem    WorkItem?         @relation(fields: [workItemId], references: [id], onDelete: SetNull)
+  script      AutomationScript? @relation(fields: [scriptId], references: [id], onDelete: SetNull)
+  requestedBy User              @relation(fields: [requestedById], references: [id])
+
+  items TestSuiteReportItem[]
+
+  @@index([projectId])
+  @@index([workItemId])
+  @@index([scriptId])
+  @@index([requestedById])
+  @@index([status])
+}
+
+model TestSuiteReportItem {
+  id String @id @default(uuid())
+
+  reportId    String
+  executionId String
+
+  scriptId   String
+  testCaseId String
+  workItemId String
+
+  status       AutomationScriptExecutionStatus
+  durationMs   Int?
+  errorMessage String?                         @db.Text
+
+  createdAt DateTime @default(now())
+
+  report    TestSuiteReport           @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  execution AutomationScriptExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@unique([reportId, executionId])
+  @@index([reportId])
+  @@index([executionId])
+  @@index([scriptId])
+  @@index([testCaseId])
+  @@index([workItemId])
+  @@index([status])
+}
+
+model ScheduledTestRun {
+  id String @id @default(uuid())
+
+  projectId   String
+  workItemId  String
+  scriptId    String
+  createdById String
+
+  name        String
+  description String?
+
+  status ScheduledTestRunStatus @default(ACTIVE)
+
+  cronExpression String
+  timezone       String @default("Africa/Tunis")
+
+  targetUrl   String?
+  browser     BrowserTarget?
+  environment String?
+  variables   Json?
+
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+  lastExecutionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workItem  WorkItem         @relation(fields: [workItemId], references: [id], onDelete: Cascade)
+  script    AutomationScript @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  createdBy User             @relation(fields: [createdById], references: [id])
+
+  @@index([projectId])
+  @@index([workItemId])
+  @@index([scriptId])
+  @@index([createdById])
+  @@index([status])
+  @@index([nextRunAt])
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  actorId    String?
+  actorEmail String?
+  actorName  String?
+  actorRole  Role?
+
+  action     AuditAction
+  entityType AuditEntityType
+  entityId   String?
+
+  projectId String?
+
+  message  String
+  severity AuditSeverity @default(INFO)
+
+  ipAddress String?
+  userAgent String?
+
+  success Boolean @default(true)
+
+  before   Json?
+  after    Json?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([projectId])
+  @@index([severity])
+  @@index([success])
+  @@index([createdAt])
+}
