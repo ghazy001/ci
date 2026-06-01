@@ -181,7 +181,7 @@ export default function TestCaseGenerationPanel({ workItemId }: Props) {
         return () => {
             pollingCancelledRef.current = true;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [workItemId]);
 
     const loadScriptsForTestCase = async (testCaseId: string) => {

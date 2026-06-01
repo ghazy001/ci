@@ -303,7 +303,7 @@ export function ScheduledTestRunsPanel({
 
     useEffect(() => {
         void loadSchedules();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [scriptId]);
 
     /* ── Actions ── */

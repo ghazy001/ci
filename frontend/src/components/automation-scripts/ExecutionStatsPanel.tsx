@@ -176,7 +176,7 @@ export function ExecutionStatsPanel({ scriptId, refreshKey = 0 }: Props) {
 
     useEffect(() => {
         void loadStats();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [scriptId, refreshKey]);
 
     const analytics = useMemo(() => {

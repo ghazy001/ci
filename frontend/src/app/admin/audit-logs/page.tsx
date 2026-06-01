@@ -502,7 +502,7 @@ export default function AdminAuditLogsPage() {
 
     useEffect(() => {
         void loadData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, []);
 
     function updateFilter<K extends keyof AuditLogFilters>(
