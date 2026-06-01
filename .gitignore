@@ -33,15 +33,15 @@ frontend/.env.local
 backend/.env
 ai-service/.env
 
-# Prisma/local DB artifacts
-*.db
-*.sqlite
-
-# Docker/local runtime
+# Local uploads/artifacts
 uploads/
 backend/uploads/
 tmp/
 temp/
+
+# Docker/local runtime
+*.db
+*.sqlite
 
 # Logs
 logs/
