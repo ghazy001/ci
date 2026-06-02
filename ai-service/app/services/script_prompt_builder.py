@@ -60,10 +60,10 @@ Framework-specific rules:
                         {
                             "purpose": "what the selector is used for",
                             "selector": "actual selector used in the script",
-                            "source": "page_inspection | inferred_from_test_case"
+                            "source": "page_inspection | inferred_from_test_case",
                         }
                     ],
-                    "warnings": ["generation warnings if any"]
+                    "warnings": ["generation warnings if any"],
                 }
             },
         }

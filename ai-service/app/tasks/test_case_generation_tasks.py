@@ -5,7 +5,7 @@ from app.schemas.generation import (
     GenerateTestCasesRequest,
     GenerateTestCasesResponse,
 )
-from app.services.generation_pipeline import TestCaseGenerationPipeline
+from app.services.generation_pipeline import CaseGenerationPipeline
 
 logger = get_task_logger(__name__)
 
@@ -15,7 +15,7 @@ def generate_test_cases_task(self, payload: dict):
     try:
         request = GenerateTestCasesRequest.model_validate(payload)
 
-        pipeline = TestCaseGenerationPipeline()
+        pipeline = CaseGenerationPipeline()
         response: GenerateTestCasesResponse = pipeline.generate(request)
 
         return response.model_dump(mode="json")

@@ -39,9 +39,7 @@ TEST_CASES_RESPONSE_SCHEMA = {
                         "type": "string",
                         "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
                     },
-                    "objective": {
-                        "type": ["string", "null"]
-                    },
+                    "objective": {"type": ["string", "null"]},
                     "preconditions": {
                         "type": "array",
                         "items": {"type": "string"},
@@ -62,9 +60,7 @@ TEST_CASES_RESPONSE_SCHEMA = {
                     "expectedResult": {"type": "string"},
                     "testData": {
                         "type": "object",
-                        "additionalProperties": {
-                            "type": "string"
-                        },
+                        "additionalProperties": {"type": "string"},
                         "properties": {},
                     },
                     "tags": {
@@ -130,9 +126,9 @@ class OpenAITestCaseProvider:
         self.prompt_builder = TestCasePromptBuilder()
 
     def generate(
-            self,
-            request: GenerateTestCasesRequest,
-            retrieved_context: list[RagSearchResult] | None = None,
+        self,
+        request: GenerateTestCasesRequest,
+        retrieved_context: list[RagSearchResult] | None = None,
     ) -> GeneratedTestCasesPayload:
         system_prompt = self.prompt_builder.build_system_prompt()
         user_prompt = self.prompt_builder.build_user_prompt(

@@ -118,10 +118,14 @@ class AutomationScriptGenerationPipeline:
         warnings.extend(fallback_warnings)
 
         if used_provider.provider_name == "fake":
-            generation_method = "playwright_inspection_safe_template_script_generation_v1"
+            generation_method = (
+                "playwright_inspection_safe_template_script_generation_v1"
+            )
             confidence = 0.35
         elif used_provider.provider_name == "ollama":
-            generation_method = "playwright_inspection_local_ollama_qwen_script_generation_v1"
+            generation_method = (
+                "playwright_inspection_local_ollama_qwen_script_generation_v1"
+            )
             confidence = 0.6
         else:
             generation_method = "playwright_inspection_structured_script_generation_v1"

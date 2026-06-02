@@ -109,9 +109,7 @@ class PageInspector:
     def _extract_visible_text(self, page) -> list[str]:
         max_items = self.settings.page_inspection_max_text_items
 
-        texts = page.locator(
-            "body *:visible"
-        ).evaluate_all(
+        texts = page.locator("body *:visible").evaluate_all(
             """
             elements => elements
               .map(el => (el.innerText || el.textContent || '').trim())
@@ -331,7 +329,9 @@ class PageInspector:
         if data_test_id:
             css_selector = f"[data-testid='{self._escape_css_value(data_test_id)}']"
         elif name:
-            css_selector = f"{item.get('tagName', 'input')}[name='{self._escape_css_value(name)}']"
+            css_selector = (
+                f"{item.get('tagName', 'input')}[name='{self._escape_css_value(name)}']"
+            )
         elif element_id:
             css_selector = f"#{self._escape_css_value(element_id)}"
         elif input_type:
@@ -398,7 +398,9 @@ class PageInspector:
         recommended: list[RecommendedSelector] = []
 
         for input_item in inputs:
-            purpose = input_item.label or input_item.placeholder or input_item.name or "Input"
+            purpose = (
+                input_item.label or input_item.placeholder or input_item.name or "Input"
+            )
 
             if input_item.selectors.label:
                 recommended.append(

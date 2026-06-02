@@ -88,7 +88,7 @@ class GenerateAutomationScriptResponse(StrictBaseModel):
 
     script: GeneratedAutomationScript
 
-    
+
 class CreateAutomationScriptJobResponse(StrictBaseModel):
     jobId: str
     status: str

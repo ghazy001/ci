@@ -113,6 +113,7 @@ class GeneratedTestCasesPayload(StrictBaseModel):
     testCases: list[GeneratedTestCase]
     warnings: list[str] = Field(default_factory=list)
 
+
 class CreateGenerationJobResponse(StrictBaseModel):
     jobId: str
     status: str

@@ -3,7 +3,7 @@ from app.schemas.generation import (
     GenerateTestCasesRequest,
     GenerateTestCasesResponse,
 )
-from app.services.generation_pipeline import TestCaseGenerationPipeline
+from app.services.generation_pipeline import CaseGenerationPipeline
 
 router = APIRouter(prefix="/test-cases", tags=["test-cases"])
 
@@ -12,5 +12,5 @@ router = APIRouter(prefix="/test-cases", tags=["test-cases"])
 def generate_test_cases(
     payload: GenerateTestCasesRequest,
 ) -> GenerateTestCasesResponse:
-    pipeline = TestCaseGenerationPipeline()
+    pipeline = CaseGenerationPipeline()
     return pipeline.generate(payload)

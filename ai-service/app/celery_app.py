@@ -20,13 +20,10 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
-
     worker_prefetch_multiplier=1,
     task_acks_late=True,
-
     task_time_limit=600,
     task_soft_time_limit=540,
-
     broker_connection_timeout=5,
     broker_connection_retry_on_startup=True,
     broker_transport_options={

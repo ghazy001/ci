@@ -12,7 +12,7 @@ from app.services.quality_checker import TestCaseQualityChecker
 from app.services.rag_service import RagService
 
 
-class TestCaseGenerationPipeline:
+class CaseGenerationPipeline:
     def __init__(self) -> None:
         self.settings = get_settings()
         self.provider = self._build_provider(self.settings.llm_provider)
@@ -120,9 +120,11 @@ class TestCaseGenerationPipeline:
                 )
                 retrieved_context = []
 
-        provider_result, used_provider, fallback_warnings = self._generate_with_fallback(
-            request=request,
-            retrieved_context=retrieved_context,
+        provider_result, used_provider, fallback_warnings = (
+            self._generate_with_fallback(
+                request=request,
+                retrieved_context=retrieved_context,
+            )
         )
 
         if isinstance(provider_result, list):

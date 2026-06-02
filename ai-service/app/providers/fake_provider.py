@@ -13,9 +13,9 @@ class FakeTestCaseProvider:
     model_name = "fake-test-case-model"
 
     def generate(
-            self,
-            request: GenerateTestCasesRequest,
-            retrieved_context=None,
+        self,
+        request: GenerateTestCasesRequest,
+        retrieved_context=None,
     ) -> list[GeneratedTestCase]:
         item = request.normalizedContent
         options = request.generationOptions

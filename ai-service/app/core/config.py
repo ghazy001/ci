@@ -1,5 +1,5 @@
 from functools import lru_cache
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -55,8 +55,7 @@ class Settings(BaseSettings):
     script_openai_temperature: float = 0.1
     script_openai_max_output_tokens: int = 6000
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
 
 
 @lru_cache

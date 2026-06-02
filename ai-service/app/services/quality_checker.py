@@ -20,13 +20,13 @@ class TestCaseQualityChecker:
             title_key = test_case.title.strip().lower()
 
             if not title_key:
-                warnings.append(f"Test case #{index} has an empty title and was removed.")
+                warnings.append(
+                    f"Test case #{index} has an empty title and was removed."
+                )
                 continue
 
             if title_key in seen_titles:
-                warnings.append(
-                    f"Duplicate test case removed: {test_case.title}"
-                )
+                warnings.append(f"Duplicate test case removed: {test_case.title}")
                 continue
 
             seen_titles.add(title_key)

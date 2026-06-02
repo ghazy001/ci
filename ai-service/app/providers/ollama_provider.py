@@ -192,15 +192,12 @@ Example output:
                 "model": self.model_name,
                 "prompt": prompt,
                 "stream": False,
-
                 # This is the important part:
                 # Ollama will try to return structured JSON.
                 "format": OLLAMA_TEST_CASE_SCHEMA,
-
                 # For Qwen/DeepSeek-style reasoning models.
                 # If your Ollama version does not support it, remove this line.
                 "think": False,
-
                 "options": {
                     "temperature": self.settings.ollama_temperature,
                     "num_predict": self.settings.ollama_num_predict,
