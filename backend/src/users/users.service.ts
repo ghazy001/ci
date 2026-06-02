@@ -61,12 +61,16 @@ export class UsersService {
 
     // Send email only for TESTER users
     if (createUserDto.role === 'TESTER') {
-      await this.mailService.sendUserCredentialsEmail(
-        user.email,
-        user.fullName,
-        user.email,
-        createUserDto.password,
-      );
+      try {
+        await this.mailService.sendUserCredentialsEmail(
+          user.email,
+          user.fullName,
+          user.email,
+          createUserDto.password,
+        );
+      } catch (error) {
+        console.error('Failed to send user credentials email:', error);
+      }
     }
 
     await this.auditLogsService.create({
