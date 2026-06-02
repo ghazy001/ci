@@ -17,11 +17,12 @@ async function bootstrap() {
   app.use(cookieParser());
 
   console.log('2. Enabling CORS...');
+
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
   app.enableCors({
-  origin: frontendUrl,
-  credentials: true,
+    origin: frontendUrl,
+    credentials: true,
   });
 
   console.log('3. Setting global pipes...');
