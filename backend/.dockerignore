@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+npm-debug.log*
+uploads
+tmp
+temp
+.DS_Store
