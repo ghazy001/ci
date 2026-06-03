@@ -15,6 +15,7 @@ import { AnalyticsAssistantModule } from './analytics-assistant/analytics-assist
 import { ScriptExecutionsModule } from './script-executions/script-executions.module';
 import { ScheduledTestRunsModule } from './scheduled-test-runs/scheduled-test-runs.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -35,5 +36,6 @@ import { AuditLogsModule } from './audit-logs/audit-logs.module';
     ScheduledTestRunsModule,
     AuditLogsModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}

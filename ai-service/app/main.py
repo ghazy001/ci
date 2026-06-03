@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from app.core.config import get_settings
+import os
+import sentry_sdk
 from app.api.v1.routes.test_case_generation import router as test_case_generation_router
 from app.api.v1.routes.test_case_generation_jobs import (
     router as test_case_generation_jobs_router,
@@ -14,6 +16,13 @@ from app.api.v1.routes.automation_script_generation_jobs import (
 )
 
 settings = get_settings()
+
+if os.getenv("SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=os.getenv("SENTRY_DSN"),
+        environment=os.getenv("APP_ENV", "development"),
+        traces_sample_rate=0.1 if os.getenv("APP_ENV") == "production" else 1.0,
+    )
 
 app = FastAPI(
     title=settings.app_name,
