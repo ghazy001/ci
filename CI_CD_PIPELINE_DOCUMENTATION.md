@@ -19,8 +19,9 @@ The pipeline is intentionally simple and professional:
 ```txt
 GitHub Push / Pull Request
   → Code Quality Checks
-  → Automated Tests
+  → Automated Tests + Coverage
   → Security Scans
+  → SonarQube Cloud Analysis
   → Docker Build Validation
   → Railway Deployment
   → Monitoring with Sentry + Uptime Monitoring
@@ -318,8 +319,122 @@ GitHub Actions versions
 This keeps the project safer over time without manually checking every package.
 
 ---
+## 10. SonarQube Cloud Analysis
 
-## 10. Docker Build Validation — `docker-build.yml`
+We added a SonarQube Cloud stage to the CI pipeline to provide a higher-level code quality gate.
+
+SonarQube Cloud checks:
+
+```txt
+bugs
+code smells
+duplicated code
+maintainability
+security hotspots
+test coverage
+quality gate status
+```
+
+SonarQube does **not** replace ESLint, Ruff, tests, or dependency security scanning. Instead, it complements them by giving a dashboard and quality gate for the whole project.
+
+### SonarQube Cloud Setup
+
+In SonarQube Cloud, Automatic Analysis was disabled because the project now uses CI-based analysis through GitHub Actions.
+
+A GitHub Actions secret was added:
+
+```txt
+SONAR_TOKEN
+```
+
+The token must only exist in GitHub Secrets. It must never be committed to the repository. If a token is pasted publicly or shared by mistake, it should be revoked and regenerated.
+
+### Sonar Project Configuration
+
+We added this file at the repository root:
+
+```txt
+sonar-project.properties
+```
+
+Example configuration:
+
+```properties
+sonar.projectKey=ghazy001_ai-test-automation-platform
+sonar.organization=ghazy001
+sonar.projectName=ai-test-automation-platform
+
+sonar.sources=backend/src,frontend,ai-service/app
+sonar.tests=backend/test,frontend,ai-service/tests
+
+sonar.exclusions=**/node_modules/**,**/.next/**,**/dist/**,**/coverage/**,**/.venv/**,**/__pycache__/**,**/.pytest_cache/**,**/.ruff_cache/**,**/uploads/**,**/tmp/**,**/temp/**
+sonar.test.inclusions=**/*.spec.ts,**/*.test.ts,**/*.test.tsx,ai-service/tests/**/*.py
+
+sonar.javascript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info
+sonar.typescript.lcov.reportPaths=backend/coverage/lcov.info,frontend/coverage/lcov.info
+sonar.python.coverage.reportPaths=ai-service/coverage.xml
+
+sonar.sourceEncoding=UTF-8
+```
+
+### SonarQube Job in GitHub Actions
+
+The SonarQube job was added to:
+
+```txt
+.github/workflows/ci.yml
+```
+
+It runs after the main CI jobs pass:
+
+```yaml
+needs:
+  - backend
+  - frontend
+  - ai-service
+```
+
+The job checks out the full Git history with:
+
+```yaml
+fetch-depth: 0
+```
+
+This is recommended because shallow clones reduce the quality and accuracy of Sonar analysis.
+
+The Sonar stage generates or reads coverage reports from:
+
+```txt
+backend/coverage/lcov.info
+frontend/coverage/lcov.info
+ai-service/coverage.xml
+```
+
+Then it runs:
+
+```yaml
+- name: SonarQube Cloud Scan
+  uses: SonarSource/sonarqube-scan-action@v8.1.0
+  env:
+    SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+```
+
+### Where SonarQube Fits
+
+SonarQube sits after tests and before deployment confidence checks:
+
+```txt
+Tests produce coverage
+  → SonarQube reads coverage
+  → SonarQube checks bugs, smells, duplication, hotspots
+  → Quality Gate passes or fails
+```
+
+If the quality gate fails, the team should inspect SonarQube Cloud, fix the issue, and push again.
+
+---
+
+## 11. Docker Build Validation — `docker-build.yml`
 
 We added a Docker build validation workflow:
 
@@ -368,7 +483,7 @@ The `${PORT:-8001}` part is important for Railway compatibility because Railway 
 
 ---
 
-## 11. Deployment Platform — Railway
+## 12. Deployment Platform — Railway
 
 We switched from Render to Railway because Render required a card and the card was declined.
 
@@ -387,7 +502,7 @@ Qdrant is hosted separately on Qdrant Cloud.
 
 ---
 
-## 12. Railway Services
+## 13. Railway Services
 
 The Railway project contains these services:
 
@@ -531,7 +646,7 @@ The worker does not need a public URL.
 
 ---
 
-## 13. Database Migrations
+## 14. Database Migrations
 
 After deploying the backend, Prisma migrations must be applied to the Railway PostgreSQL database.
 
@@ -555,7 +670,7 @@ If a default admin is created, the password should be changed immediately after 
 
 ---
 
-## 14. Monitoring with Sentry
+## 15. Monitoring with Sentry
 
 Sentry is used for:
 
@@ -693,7 +808,7 @@ SENTRY_DSN=your_ai_service_sentry_dsn
 
 ---
 
-## 15. Health Checks
+## 16. Health Checks
 
 Health endpoints were added so uptime monitoring can verify the services are online.
 
@@ -748,7 +863,7 @@ HTTP 200
 
 ---
 
-## 16. Uptime Monitoring
+## 17. Uptime Monitoring
 
 We first considered Better Stack, but the free account only allowed one monitor in practice.
 
@@ -771,7 +886,7 @@ Monitor the AI service /health URL
 
 ---
 
-## 17. Uptime Monitor Settings
+## 18. Uptime Monitor Settings
 
 ### Frontend Monitor
 
@@ -837,7 +952,7 @@ The keyword `ai-service` should exist in the AI service health response.
 
 ---
 
-## 18. Recommended Monitoring Locations
+## 19. Recommended Monitoring Locations
 
 Because the developer is based in Tunisia, recommended check locations are mostly European:
 
@@ -858,7 +973,7 @@ This avoids false alerts caused by one temporary regional network issue.
 
 ---
 
-## 19. How the Whole Pipeline Works
+## 20. How the Whole Pipeline Works
 
 The final pipeline looks like this:
 
@@ -875,6 +990,8 @@ AI service job runs Ruff and Pytest
   ↓
 Security workflow scans npm and Python dependencies
   ↓
+SonarQube Cloud analyzes code quality, coverage, duplication, bugs, and security hotspots
+  ↓
 Docker workflow validates backend and AI service images
   ↓
 Railway auto-deploys connected services from GitHub
@@ -890,7 +1007,7 @@ Uptime monitoring checks public URLs every few minutes
 
 ---
 
-## 20. What Happens on a Normal Code Change
+## 21. What Happens on a Normal Code Change
 
 Example: a developer changes backend code.
 
@@ -898,17 +1015,19 @@ Example: a developer changes backend code.
 1. Developer commits and pushes code
 2. GitHub Actions CI starts automatically
 3. Backend lint/test/build must pass
-4. Security and Docker checks run
-5. Railway detects the push and redeploys the backend
-6. If runtime errors happen, Sentry reports them
-7. If the service goes offline, uptime monitoring sends an alert
+4. Security checks run
+5. SonarQube Cloud analyzes code quality and the quality gate
+6. Docker image validation runs
+7. Railway detects the push and redeploys the backend
+8. If runtime errors happen, Sentry reports them
+9. If the service goes offline, uptime monitoring sends an alert
 ```
 
 This gives fast feedback and safer deployments.
 
 ---
 
-## 21. What Happens on a Broken Change
+## 22. What Happens on a Broken Change
 
 If code has a lint error:
 
@@ -931,7 +1050,7 @@ Developer rolls forward with a fix
 
 ---
 
-## 22. Current Tooling Summary
+## 23. Current Tooling Summary
 
 | Concern | Tool | Purpose |
 |---|---|---|
@@ -943,16 +1062,17 @@ Developer rolls forward with a fix
 | Dependency security | npm audit, pip-audit | Detect vulnerable packages |
 | Dependency updates | Dependabot | Automated dependency PRs |
 | Docker validation | Docker Build workflow | Validate deployable images |
+| Code quality dashboard | SonarQube Cloud | Bugs, code smells, duplication, security hotspots, coverage, quality gate |
 | Hosting | Railway | Deploy app services and databases |
 | Database | Railway PostgreSQL | Main relational database |
 | Queue/cache | Railway Redis | Celery broker/result backend |
 | Vector DB | Qdrant Cloud | RAG/project knowledge storage |
 | Error tracking | Sentry | Runtime errors and performance |
-| Uptime monitoring | UptimeRobot or HetrixTools | Public availability checks |
+| Uptime monitoring | UptimeRobot or HetrixTools | Public availability checks and downtime alerts |
 
 ---
 
-## 23. Recommended Next Improvements
+## 24. Recommended Next Improvements
 
 These are optional improvements for later:
 
@@ -972,7 +1092,7 @@ For now, the pipeline is complete enough for a serious first CI/CD setup without
 
 ---
 
-## 24. Useful Commands
+## 25. Useful Commands
 
 Run local backend checks:
 
@@ -1023,7 +1143,7 @@ curl https://your-ai-service.up.railway.app/health
 
 ---
 
-## 25. Final Result
+## 26. Final Result
 
 At the end of today’s work, the project has a complete professional CI/CD foundation:
 
@@ -1031,6 +1151,7 @@ At the end of today’s work, the project has a complete professional CI/CD foun
 Code quality checks
 Automated tests
 Security scans
+SonarQube Cloud quality gate
 Docker build validation
 Railway deployment
 Sentry error tracking
@@ -1038,3 +1159,86 @@ Uptime monitoring
 ```
 
 This setup gives confidence that the application can be changed, tested, deployed, and monitored safely.
+
+## 27. Final CI/CD Flow Diagram
+
+```txt
+Developer on macOS
+  │
+  │  git add .
+  │  git commit -m "change"
+  │  git push
+  ▼
+GitHub Repository
+  │
+  ├───────────────────────────────────────────────┐
+  │                                               │
+  ▼                                               ▼
+GitHub Actions CI                           Security Workflow
+  │                                               │
+  ├─ Backend Job                                  ├─ npm audit backend
+  │    ├─ npm ci                                  ├─ npm audit frontend
+  │    ├─ prisma generate                         ├─ pip-audit ai-service
+  │    ├─ prisma migrate deploy                   └─ Dependabot PRs
+  │    ├─ ESLint
+  │    ├─ Jest tests + coverage
+  │    └─ NestJS build
+  │
+  ├─ Frontend Job
+  │    ├─ npm ci
+  │    ├─ ESLint
+  │    ├─ Jest tests + coverage
+  │    └─ Next.js build
+  │
+  └─ AI Service Job
+       ├─ pip install
+       ├─ Ruff lint
+       ├─ Ruff format check
+       └─ Pytest + coverage
+  │
+  ▼
+SonarQube Cloud Analysis
+  │
+  ├─ Reads backend/coverage/lcov.info
+  ├─ Reads frontend/coverage/lcov.info
+  ├─ Reads ai-service/coverage.xml
+  ├─ Checks bugs, code smells, duplication
+  ├─ Checks security hotspots
+  └─ Applies Quality Gate
+  │
+  ▼
+Docker Build Validation
+  │
+  ├─ Build backend Docker image
+  └─ Build ai-service Docker image
+  │
+  ▼
+Railway Deployment
+  │
+  ├─ Frontend service     → Next.js app
+  ├─ Backend service      → NestJS API
+  ├─ AI service           → FastAPI API
+  ├─ AI worker            → Celery worker
+  ├─ PostgreSQL           → Prisma database
+  └─ Redis                → Celery broker/result backend
+  │
+  ▼
+External Cloud Services
+  │
+  └─ Qdrant Cloud         → RAG vector database
+  │
+  ▼
+Production Monitoring
+  │
+  ├─ Sentry
+  │    ├─ frontend runtime errors
+  │    ├─ backend API errors
+  │    └─ ai-service / worker errors
+  │
+  └─ UptimeRobot or HetrixTools
+       ├─ checks frontend URL
+       ├─ checks backend /health
+       └─ checks ai-service /health
+```
+
+This flow means every code change is checked before and after deployment: CI validates the code, SonarQube evaluates maintainability and quality, Railway deploys the services, and monitoring tools alert you if production has runtime errors or downtime.
