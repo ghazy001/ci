@@ -17,7 +17,10 @@ from app.schemas.rag import RagDocumentChunk, RagSearchResult
 class QdrantVectorStore:
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.client = QdrantClient(url=self.settings.qdrant_url)
+        self.client = QdrantClient(
+            url=self.settings.qdrant_url,
+            api_key=self.settings.qdrant_api_key,
+        )
         self.collection = self.settings.qdrant_collection
 
     def ensure_collection(self, vector_size: int) -> None:

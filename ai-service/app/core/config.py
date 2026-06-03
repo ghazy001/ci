@@ -31,6 +31,7 @@ class Settings(BaseSettings):
 
     # Qdrant / RAG
     qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str | None = None
     qdrant_collection: str = "project_knowledge"
     rag_top_k: int = 5
 
