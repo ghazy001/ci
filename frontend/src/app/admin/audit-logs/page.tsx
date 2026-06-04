@@ -169,7 +169,19 @@ function AuditDetailsModal({ log, loading, onClose }: { log: AuditLog | null; lo
     const sta = log ? statusConfig(log.success) : null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-4 sm:items-center" onClick={onClose}>
+        <div
+                role="button"
+                tabIndex={0}
+                aria-label="Close modal"
+                className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-4 sm:items-center"
+                onClick={onClose}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onClose();
+                    }
+                }}
+        >
             <div
                 className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
                 onClick={(e) => e.stopPropagation()}

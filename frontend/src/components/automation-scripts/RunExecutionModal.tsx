@@ -133,9 +133,17 @@ export function RunExecutionModal({ open, loading = false, onClose, onStart }: P
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6">
             {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
-                onClick={!loading ? onClose : undefined}
+            
+            <button
+                type="button"
+                aria-label="Close modal"
+                className="absolute inset-0 border-0 bg-slate-950/50 p-0 backdrop-blur-sm disabled:cursor-not-allowed"
+                onClick={() => {
+                    if (!loading) {
+                    onClose();
+                    }
+                }}
+                disabled={loading}
             />
 
             {/* Modal */}

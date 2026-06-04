@@ -824,10 +824,31 @@ function DefectReportModal({ report, loading, onClose, onDownloadPdf }: {
     onDownloadPdf: () => void;
 }) {
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-        >
+            <div
+                role="button"
+                tabIndex={0}
+                aria-label="Close modal"
+                className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-[2px]"
+                 onClick={(e) => {
+                                    if (e.target === e.currentTarget) {
+                                     onClose();
+                                    }
+                                }}
+                onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                        onClose();
+                        return;
+                        }
+
+                        if (
+                        e.target === e.currentTarget &&
+                        (e.key === "Enter" || e.key === " ")
+                        ) {
+                        e.preventDefault();
+                        onClose();
+                        }
+                }}
+            >
             <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
 
                 {/* Modal header */}

@@ -147,8 +147,10 @@ export function ExecutionDetailModal({ execution, open, onClose }: Props) {
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4 py-6">
             {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"
+           <button
+                type="button"
+                aria-label="Close modal"
+                className="absolute inset-0 border-0 bg-slate-950/60 p-0 backdrop-blur-[2px]"
                 onClick={onClose}
             />
 
