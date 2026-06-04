@@ -183,8 +183,9 @@ function AuditDetailsModal({ log, loading, onClose }: { log: AuditLog | null; lo
                 }}
         >
             <div
-                className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
-                onClick={(e) => e.stopPropagation()}
+             role="dialog"
+             aria-modal="true"
+             className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
