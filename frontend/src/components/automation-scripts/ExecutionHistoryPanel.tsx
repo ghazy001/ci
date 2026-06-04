@@ -157,7 +157,7 @@ export function ExecutionHistoryPanel({ scriptId, refreshKey = 0, onSelect }: Pr
     useEffect(() => {
         void loadExecutions();
         void loadSuiteReports();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+         
     }, [scriptId, refreshKey]);
 
     const summary = useMemo(() => executions.reduce(

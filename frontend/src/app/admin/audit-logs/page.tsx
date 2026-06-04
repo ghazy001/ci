@@ -353,7 +353,7 @@ export default function AdminAuditLogsPage() {
         }
     }
 
-    useEffect(() => { void loadData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => { void loadData(); }, []);  
 
     function updateFilter<K extends keyof AuditLogFilters>(key: K, value: AuditLogFilters[K]) {
         setFilters((cur) => ({ ...cur, [key]: value, page: 1 }));

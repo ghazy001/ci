@@ -27,21 +27,33 @@ jest.mock("recharts", () => {
     children: React.ReactNode;
   }) => <div data-testid="responsive-container">{children}</div>;
 
-  const makeChart =
-    (name: string) =>
-    ({ data }: any) =>
-      <div data-testid={name} data-rows={data?.length ?? ""} />;
+  MockResponsiveContainer.displayName = "MockResponsiveContainer";
 
-  const makePrimitive =
-    (name: string) =>
-    ({ dataKey, data }: any) =>
-      (
+  const makeChart = (name: string) => {
+    function MockChart({ data }: any) {
+      return <div data-testid={name} data-rows={data?.length ?? ""} />;
+    }
+
+    MockChart.displayName = `Mock${name}Chart`;
+
+    return MockChart;
+  };
+
+  const makePrimitive = (name: string) => {
+    function MockPrimitive({ dataKey, data }: any) {
+      return (
         <div
           data-testid={name}
           data-datakey={dataKey ?? ""}
           data-rows={data?.length ?? ""}
         />
       );
+    }
+
+    MockPrimitive.displayName = `Mock${name}Primitive`;
+
+    return MockPrimitive;
+  };
 
   return {
     ResponsiveContainer: MockResponsiveContainer,
