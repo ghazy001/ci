@@ -181,7 +181,7 @@ export default function TestCaseGenerationPanel({ workItemId }: Props) {
         return () => {
             pollingCancelledRef.current = true;
         };
-         
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [workItemId]);
 
     const loadScriptsForTestCase = async (testCaseId: string) => {
@@ -462,10 +462,10 @@ export default function TestCaseGenerationPanel({ workItemId }: Props) {
 
     if (loading) {
         return (
-            <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]">
+            <div className="rounded-2xl border border-slate-200/60 bg-white p-8 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]">
                 <div className="flex items-center gap-3 text-sm text-slate-500">
                     <Loader2 className="h-4 w-4 animate-spin text-[var(--cap-blue)]" />
-                    Loading AI test cases…
+                    <span>Loading AI test cases…</span>
                 </div>
             </div>
         );
@@ -476,92 +476,120 @@ export default function TestCaseGenerationPanel({ workItemId }: Props) {
 
     return (
         <>
-            <section className="relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-[0_1px_3px_0_rgb(0,0,0,0.04),0_4px_16px_0_rgb(0,0,0,0.04)]">
-                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-[var(--cap-blue)]/0 via-[var(--cap-blue)] to-[var(--cap-blue)]/0" />
+            {/* ─── Main Panel ─────────────────────────────────────────── */}
+            <section className="relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-[0_1px_4px_0_rgb(0,0,0,0.05),0_6px_20px_0_rgb(0,0,0,0.04)]">
+                {/* Top accent line */}
+                <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--cap-blue)] to-transparent" />
 
-                <div className="space-y-5 p-5 sm:p-6 lg:p-7">
+                <div className="space-y-6 px-6 py-7 sm:px-7 lg:px-8">
+
+                    {/* ── Header ─────────────────────────────────────── */}
                     <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                        {/* Title block */}
                         <div className="flex min-w-0 items-start gap-4">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--cap-blue)]/8 text-[var(--cap-blue)]">
-                                <ShieldCheck size={18} strokeWidth={1.8} />
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--cap-blue)]/8 text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/12">
+                                <ShieldCheck size={19} strokeWidth={1.75} />
                             </div>
-
-                            <div className="min-w-0">
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--cap-blue)]">
+                            <div className="min-w-0 pt-0.5">
+                                <p className="text-[10.5px] font-bold uppercase tracking-[0.2em] text-[var(--cap-blue)]">
                                     Test Case Review
                                 </p>
-                                <h2 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+                                <h2 className="mt-1 text-[1.375rem] font-bold leading-tight tracking-[-0.02em] text-slate-900">
                                     Review Board
                                 </h2>
-                                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-400">
+                                <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-slate-400">
                                     Generate focused test cases, review them one by one, then create automation only for approved cases.
                                 </p>
                             </div>
                         </div>
 
+                        {/* Action buttons */}
                         <div className="flex flex-wrap items-center gap-2">
-                            <button type="button" onClick={() => setShowSettings((value) => !value)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 hover:shadow-sm">
-                                <Settings2 size={15} />
+                            {/* Ghost / secondary buttons */}
+                            <GhostButton onClick={() => setShowSettings((v) => !v)} icon={<Settings2 size={14} strokeWidth={2} />}>
                                 Settings
-                            </button>
-                            <button type="button" onClick={() => setShowHistory((value) => !value)} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 hover:shadow-sm">
-                                <ChevronDown className={`h-4 w-4 transition-transform ${showHistory ? "rotate-180" : ""}`} />
+                            </GhostButton>
+                            <GhostButton
+                                onClick={() => setShowHistory((v) => !v)}
+                                icon={
+                                    <ChevronDown
+                                        className={`h-[15px] w-[15px] transition-transform duration-200 ${showHistory ? "rotate-180" : ""}`}
+                                    />
+                                }
+                            >
                                 History
-                            </button>
+                            </GhostButton>
+
+                            {/* Retry failed — danger ghost */}
                             {latestGeneration?.status === "FAILED" && (
-                                <button type="button" onClick={handleRetryLatestGeneration} disabled={isBusy} className="inline-flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
-                                    <RefreshCw className="h-4 w-4" />
+                                <button
+                                    type="button"
+                                    onClick={handleRetryLatestGeneration}
+                                    disabled={isBusy}
+                                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-200/80 bg-red-50 px-3.5 text-[13px] font-medium text-red-600 transition-all hover:border-red-300 hover:bg-red-100 hover:shadow-sm active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55"
+                                >
+                                    <RefreshCw className="h-3.5 w-3.5" />
                                     Retry failed
                                 </button>
                             )}
-                            <button type="button" onClick={handleGenerate} disabled={isBusy} className="inline-flex items-center gap-2 rounded-xl bg-[var(--cap-blue)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60">
+
+                            {/* Primary CTA */}
+                            <PrimaryButton onClick={handleGenerate} disabled={isBusy} loading={isBusy}>
                                 {isBusy ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        {isProcessing ? "Processing…" : "Generating…"}
-                                    </>
+                                    isProcessing ? "Processing…" : "Generating…"
                                 ) : testCases.length > 0 ? (
-                                    <>
-                                        <RefreshCw className="h-4 w-4" />
-                                        Generate again
-                                    </>
+                                    <><RefreshCw className="h-3.5 w-3.5" />Generate again</>
                                 ) : (
-                                    <>
-                                        <Sparkles className="h-4 w-4" />
-                                        Generate test cases
-                                    </>
+                                    <><Sparkles className="h-3.5 w-3.5" />Generate test cases</>
                                 )}
-                            </button>
+                            </PrimaryButton>
                         </div>
                     </div>
 
+                    {/* ── Generation status strip ─────────────────────── */}
                     {latestGeneration && (
-                        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50/80 p-3 text-xs">
+                        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-3.5 py-2.5 text-xs">
                             <GenerationStatusBadge status={latestGeneration.status} />
-                            {latestGeneration.provider && <StatusMeta>{latestGeneration.provider} / {latestGeneration.model}</StatusMeta>}
-                            {typeof latestGeneration.confidence === "number" && <StatusMeta>Confidence {Math.round(latestGeneration.confidence * 100)}%</StatusMeta>}
+                            {latestGeneration.provider && (
+                                <StatusMeta>{latestGeneration.provider} / {latestGeneration.model}</StatusMeta>
+                            )}
+                            {typeof latestGeneration.confidence === "number" && (
+                                <StatusMeta>Confidence {Math.round(latestGeneration.confidence * 100)}%</StatusMeta>
+                            )}
                             {latestGeneration.generationMethod && (
                                 <span className="rounded-full bg-[var(--cap-blue)]/8 px-3 py-1 font-medium text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/15">
-                  {latestGeneration.generationMethod.includes("rag") ? "RAG enabled" : "Standard generation"}
-                </span>
+                                    {latestGeneration.generationMethod.includes("rag") ? "RAG enabled" : "Standard generation"}
+                                </span>
                             )}
                         </div>
                     )}
 
+                    {/* ── Settings panel ─────────────────────────────── */}
                     {showSettings && (
-                        <div className="rounded-2xl border border-slate-200/60 bg-slate-50/80 p-4">
-                            <div className="mb-4">
-                                <h3 className="text-sm font-semibold text-slate-900">Generation settings</h3>
-                                <p className="mt-0.5 text-xs text-slate-400">Hidden by default to keep the review page calm.</p>
+                        <div className="rounded-xl border border-slate-200/70 bg-slate-50/80 p-5">
+                            <div className="mb-4 border-b border-slate-100 pb-3">
+                                <h3 className="text-[13px] font-semibold text-slate-800">Generation settings</h3>
+                                <p className="mt-0.5 text-xs text-slate-400">Hidden by default to keep the review page focused.</p>
                             </div>
                             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                                 <label className="space-y-1.5">
-                                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Max test cases</span>
-                                    <input type="number" min={1} max={30} value={maxTestCases} onChange={(e) => setMaxTestCases(Number(e.target.value))} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10" />
+                                    <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">Max test cases</span>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={30}
+                                        value={maxTestCases}
+                                        onChange={(e) => setMaxTestCases(Number(e.target.value))}
+                                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/50 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                    />
                                 </label>
                                 <label className="space-y-1.5">
-                                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Language</span>
-                                    <select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10">
+                                    <span className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">Language</span>
+                                    <select
+                                        value={language}
+                                        onChange={(e) => setLanguage(e.target.value)}
+                                        className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/50 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                    >
                                         <option value="fr">French</option>
                                         <option value="en">English</option>
                                     </select>
@@ -574,87 +602,195 @@ export default function TestCaseGenerationPanel({ workItemId }: Props) {
                         </div>
                     )}
 
-                    {isProcessing && <InfoBanner tone="amber" icon={<Loader2 className="h-4 w-4 animate-spin" />} title="AI generation is running">The board refreshes automatically when the new test cases are ready.</InfoBanner>}
+                    {/* ── Banners ─────────────────────────────────────── */}
+                    {isProcessing && (
+                        <InfoBanner tone="amber" icon={<Loader2 className="h-4 w-4 animate-spin" />} title="AI generation is running">
+                            The board refreshes automatically when the new test cases are ready.
+                        </InfoBanner>
+                    )}
 
                     {generationTimedOut && latestGeneration?.status === "PROCESSING" && (
-                        <div className="rounded-2xl border border-orange-200 bg-orange-50 p-4">
+                        <div className="rounded-xl border border-orange-200 bg-orange-50/80 p-4">
                             <div className="flex items-start gap-3">
-                                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />
+                                <AlertCircle className="mt-0.5 h-[15px] w-[15px] shrink-0 text-orange-600" />
                                 <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-semibold text-orange-800">Generation is taking longer than expected.</p>
-                                    <p className="mt-1 text-sm text-orange-700">The AI job may still finish, but you can check again or mark it as failed before retrying.</p>
+                                    <p className="text-[13px] font-semibold text-orange-800">Generation is taking longer than expected.</p>
+                                    <p className="mt-1 text-xs leading-relaxed text-orange-700">
+                                        The AI job may still finish, but you can check again or mark it as failed before retrying.
+                                    </p>
                                     <div className="mt-3 flex flex-wrap gap-2">
-                                        <button type="button" onClick={pollLatestGeneration} disabled={polling} className="rounded-lg border border-orange-200 bg-white px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 disabled:opacity-60">Check again</button>
-                                        <button type="button" onClick={handleMarkLatestGenerationFailed} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">Mark as failed</button>
+                                        <SmallGhostButton
+                                            onClick={pollLatestGeneration}
+                                            disabled={polling}
+                                            className="border-orange-200 text-orange-700 hover:bg-orange-100"
+                                        >
+                                            Check again
+                                        </SmallGhostButton>
+                                        <SmallGhostButton
+                                            onClick={handleMarkLatestGenerationFailed}
+                                            className="border-red-200 text-red-600 hover:bg-red-50"
+                                        >
+                                            Mark as failed
+                                        </SmallGhostButton>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {error && <InfoBanner tone="red" icon={<AlertCircle className="h-4 w-4" />} title="Something went wrong">{error}</InfoBanner>}
+                    {error && (
+                        <InfoBanner tone="red" icon={<AlertCircle className="h-4 w-4" />} title="Something went wrong">
+                            {error}
+                        </InfoBanner>
+                    )}
 
                     {latestGeneration?.warnings && latestGeneration.warnings.length > 0 && (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-amber-800"><AlertCircle className="h-4 w-4" />AI warnings</div>
-                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-700">
-                                {latestGeneration.warnings.map((warning, index) => <li key={`${warning}-${index}`}>{warning}</li>)}
+                        <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+                            <div className="flex items-center gap-2 text-[13px] font-semibold text-amber-800">
+                                <AlertCircle className="h-[15px] w-[15px]" />
+                                AI warnings
+                            </div>
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-amber-700">
+                                {latestGeneration.warnings.map((w, i) => <li key={`${w}-${i}`}>{w}</li>)}
                             </ul>
                         </div>
                     )}
 
-                    {showHistory && <GenerationHistory generationHistory={generationHistory} isBusy={isBusy} onRetry={async (generationId) => {
-                        try {
-                            setGenerating(true);
-                            setGenerationTimedOut(false);
-                            setError(null);
-                            await testCaseService.retryGeneration(generationId);
-                            await pollLatestGeneration();
-                        } catch (err: any) {
-                            setError(err?.response?.data?.message || "Failed to retry generation.");
-                            await loadData();
-                        } finally {
-                            setGenerating(false);
-                        }
-                    }} />}
+                    {/* ── History ─────────────────────────────────────── */}
+                    {showHistory && (
+                        <GenerationHistory
+                            generationHistory={generationHistory}
+                            isBusy={isBusy}
+                            onRetry={async (generationId) => {
+                                try {
+                                    setGenerating(true);
+                                    setGenerationTimedOut(false);
+                                    setError(null);
+                                    await testCaseService.retryGeneration(generationId);
+                                    await pollLatestGeneration();
+                                } catch (err: any) {
+                                    setError(err?.response?.data?.message || "Failed to retry generation.");
+                                    await loadData();
+                                } finally {
+                                    setGenerating(false);
+                                }
+                            }}
+                        />
+                    )}
 
+                    {/* ── Stat cards ──────────────────────────────────── */}
                     {testCases.length > 0 && (
                         <>
-                            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                                <StatCard label="Pending review" value={pendingCount} icon={<AlertCircle size={18} />} />
-                                <StatCard label="Approved" value={approvedCount} icon={<CheckCircle2 size={18} />} />
-                                <StatCard label="Declined" value={declinedCount} icon={<XCircle size={18} />} />
-                                <StatCard label="Automation ready" value={automationReadyCount} icon={<FileCode2 size={18} />} />
+                            <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+                                <StatCard label="Pending review" value={pendingCount} icon={<AlertCircle size={17} strokeWidth={2} />} />
+                                <StatCard label="Approved" value={approvedCount} icon={<CheckCircle2 size={17} strokeWidth={2} />} />
+                                <StatCard label="Declined" value={declinedCount} icon={<XCircle size={17} strokeWidth={2} />} />
+                                <StatCard label="Automation ready" value={automationReadyCount} icon={<FileCode2 size={17} strokeWidth={2} />} />
                             </div>
 
-                            <div className="rounded-2xl border border-slate-200/60 bg-white p-4 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]">
+                            {/* ── Filter bar ─────────────────────────────── */}
+                            <div className="rounded-xl border border-slate-200/60 bg-white p-4 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]">
                                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    {/* Search */}
                                     <div className="relative flex-1">
-                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                        <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search test cases, steps, expected result…" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[var(--cap-blue)]/40 focus:bg-white focus:ring-2 focus:ring-[var(--cap-blue)]/10" />
+                                        <Search className="pointer-events-none absolute left-3 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            placeholder="Search test cases, steps, expected result…"
+                                            className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[var(--cap-blue)]/40 focus:bg-white focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                        />
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <FilterSelect label="Status" value={statusFilter} onChange={(value) => setStatusFilter(value as StatusFilter)} options={[{ label: "All statuses", value: "ALL" }, { label: "Generated", value: "GENERATED" }, { label: "Edited", value: "EDITED" }, { label: "Approved", value: "APPROVED" }, { label: "Declined", value: "DECLINED" }]} compact />
-                                        <FilterSelect label="Sort" value={sortBy} onChange={(value) => setSortBy(value as SortKey)} options={[{ label: "Priority", value: "priority" }, { label: "Status", value: "status" }, { label: "Title", value: "title" }, { label: "Type", value: "type" }]} compact />
-                                        <button type="button" onClick={() => setShowFilters((value) => !value)} className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 hover:shadow-sm"><Filter size={15} />More</button>
-                                        {hasActiveFilters && <button type="button" onClick={clearFilters} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Clear</button>}
+                                        <FilterSelect
+                                            label="Status"
+                                            value={statusFilter}
+                                            onChange={(v) => setStatusFilter(v as StatusFilter)}
+                                            options={[
+                                                { label: "All statuses", value: "ALL" },
+                                                { label: "Generated", value: "GENERATED" },
+                                                { label: "Edited", value: "EDITED" },
+                                                { label: "Approved", value: "APPROVED" },
+                                                { label: "Declined", value: "DECLINED" },
+                                            ]}
+                                            compact
+                                        />
+                                        <FilterSelect
+                                            label="Sort"
+                                            value={sortBy}
+                                            onChange={(v) => setSortBy(v as SortKey)}
+                                            options={[
+                                                { label: "Priority", value: "priority" },
+                                                { label: "Status", value: "status" },
+                                                { label: "Title", value: "title" },
+                                                { label: "Type", value: "type" },
+                                            ]}
+                                            compact
+                                        />
+                                        <GhostButton
+                                            onClick={() => setShowFilters((v) => !v)}
+                                            icon={<Filter size={13} strokeWidth={2} />}
+                                        >
+                                            More
+                                        </GhostButton>
+                                        {hasActiveFilters && (
+                                            <button
+                                                type="button"
+                                                onClick={clearFilters}
+                                                className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-500 transition hover:border-slate-300 hover:text-slate-800"
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
                                 {showFilters && (
-                                    <div className="mt-3 grid gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-3 md:grid-cols-3">
-                                        <FilterSelect label="Priority" value={priorityFilter} onChange={(value) => setPriorityFilter(value as PriorityFilter)} options={[{ label: "All priorities", value: "ALL" }, { label: "Critical", value: "CRITICAL" }, { label: "High", value: "HIGH" }, { label: "Medium", value: "MEDIUM" }, { label: "Low", value: "LOW" }]} />
-                                        <FilterSelect label="Type" value={typeFilter} onChange={(value) => setTypeFilter(value as TypeFilter)} options={[{ label: "All types", value: "ALL" }, ...Object.entries(typeLabels).map(([value, label]) => ({ value, label }))]} />
-                                        <FilterSelect label="Scripts" value={scriptFilter} onChange={(value) => setScriptFilter(value as ScriptFilter)} options={[{ label: "All scripts", value: "ALL" }, { label: "With scripts", value: "WITH_SCRIPTS" }, { label: "Without scripts", value: "WITHOUT_SCRIPTS" }]} />
+                                    <div className="mt-3 grid gap-3 rounded-lg border border-slate-100 bg-slate-50/70 p-3 md:grid-cols-3">
+                                        <FilterSelect
+                                            label="Priority"
+                                            value={priorityFilter}
+                                            onChange={(v) => setPriorityFilter(v as PriorityFilter)}
+                                            options={[
+                                                { label: "All priorities", value: "ALL" },
+                                                { label: "Critical", value: "CRITICAL" },
+                                                { label: "High", value: "HIGH" },
+                                                { label: "Medium", value: "MEDIUM" },
+                                                { label: "Low", value: "LOW" },
+                                            ]}
+                                        />
+                                        <FilterSelect
+                                            label="Type"
+                                            value={typeFilter}
+                                            onChange={(v) => setTypeFilter(v as TypeFilter)}
+                                            options={[
+                                                { label: "All types", value: "ALL" },
+                                                ...Object.entries(typeLabels).map(([value, label]) => ({ value, label })),
+                                            ]}
+                                        />
+                                        <FilterSelect
+                                            label="Scripts"
+                                            value={scriptFilter}
+                                            onChange={(v) => setScriptFilter(v as ScriptFilter)}
+                                            options={[
+                                                { label: "All scripts", value: "ALL" },
+                                                { label: "With scripts", value: "WITH_SCRIPTS" },
+                                                { label: "Without scripts", value: "WITHOUT_SCRIPTS" },
+                                            ]}
+                                        />
                                     </div>
                                 )}
 
-                                <p className="mt-3 text-xs text-slate-400">Showing {filteredTestCases.length} of {testCases.length} test cases. Open a card only when you need the full steps.</p>
+                                <p className="mt-3 text-[11px] text-slate-400">
+                                    Showing <span className="font-semibold text-slate-600">{filteredTestCases.length}</span> of{" "}
+                                    <span className="font-semibold text-slate-600">{testCases.length}</span> test cases.
+                                </p>
                             </div>
                         </>
                     )}
 
+                    {/* ── Test Case list ──────────────────────────────── */}
                     <div className="space-y-3">
                         {testCases.length === 0 ? (
                             <EmptyInitialState isProcessing={isProcessing} />
@@ -668,84 +804,221 @@ export default function TestCaseGenerationPanel({ workItemId }: Props) {
                                 const scriptsOpen = !!scriptsOpenIds[testCase.id];
 
                                 return (
-                                    <article key={testCase.id} className="group overflow-hidden rounded-2xl border border-slate-200/60 bg-slate-50/80 transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--cap-blue)]/20 hover:bg-white hover:shadow-md">
+                                    <article
+                                        key={testCase.id}
+                                        className="group overflow-hidden rounded-xl border border-slate-200/60 bg-slate-50/60 transition-all duration-200 hover:-translate-y-px hover:border-[var(--cap-blue)]/25 hover:bg-white hover:shadow-[0_4px_16px_0_rgb(0,0,0,0.07)]"
+                                    >
                                         <div className="p-5">
+                                            {/* Card header row */}
                                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                {/* Left: badges + title */}
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <span className="inline-flex rounded-lg bg-[var(--cap-blue)]/8 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/15">TC-{String(index + 1).padStart(2, "0")}</span>
+                                                    <div className="flex flex-wrap items-center gap-1.5">
+                                                        <span className="inline-flex rounded-md bg-[var(--cap-blue)]/8 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/15">
+                                                            TC-{String(index + 1).padStart(2, "0")}
+                                                        </span>
                                                         <StatusBadge status={testCase.status} />
                                                         <PriorityBadge priority={testCase.priority} />
                                                         <Badge>{typeLabels[testCase.type]}</Badge>
-                                                        {scripts.length > 0 && <span className="rounded-full bg-[var(--cap-blue)]/8 px-2.5 py-1 text-xs font-medium text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/15">{scripts.length} script{scripts.length === 1 ? "" : "s"}</span>}
+                                                        {scripts.length > 0 && (
+                                                            <span className="rounded-full bg-[var(--cap-blue)]/8 px-2.5 py-0.5 text-[11px] font-medium text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/15">
+                                                                {scripts.length} script{scripts.length === 1 ? "" : "s"}
+                                                            </span>
+                                                        )}
                                                     </div>
 
                                                     {isEditing ? (
-                                                        <input value={draft.title || ""} onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))} className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium outline-none focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10" />
+                                                        <input
+                                                            value={draft.title || ""}
+                                                            onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))}
+                                                            className="mt-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                                        />
                                                     ) : (
-                                                        <h3 className="mt-3 text-base font-bold leading-6 text-slate-900">{testCase.title}</h3>
+                                                        <h3 className="mt-2.5 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-slate-900">
+                                                            {testCase.title}
+                                                        </h3>
                                                     )}
 
-                                                    <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-500">{testCase.objective || testCase.expectedResult || "No summary available."}</p>
+                                                    <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-slate-500">
+                                                        {testCase.objective || testCase.expectedResult || "No summary available."}
+                                                    </p>
                                                 </div>
 
-                                                <div className="flex flex-wrap gap-2 lg:justify-end">
-                                                    <button type="button" onClick={() => setExpandedIds((prev) => ({ ...prev, [testCase.id]: !prev[testCase.id] }))} className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 hover:shadow-sm">
-                                                        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                                        {isExpanded ? "Hide details" : "View details"}
-                                                    </button>
-                                                    {!isEditing && testCase.status !== "DECLINED" && <button type="button" onClick={() => startEdit(testCase)} className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 hover:shadow-sm">Edit</button>}
+                                                {/* Right: action buttons */}
+                                                <div className="flex flex-wrap items-start gap-1.5 lg:justify-end">
+                                                    {/* Expand toggle */}
+                                                    <SmallGhostButton
+                                                        onClick={() => setExpandedIds((prev) => ({ ...prev, [testCase.id]: !prev[testCase.id] }))}
+                                                        className="border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                                                        icon={isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                    >
+                                                        {isExpanded ? "Hide" : "Details"}
+                                                    </SmallGhostButton>
+
+                                                    {/* Edit */}
+                                                    {!isEditing && testCase.status !== "DECLINED" && (
+                                                        <SmallGhostButton
+                                                            onClick={() => startEdit(testCase)}
+                                                            className="border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                                                        >
+                                                            Edit
+                                                        </SmallGhostButton>
+                                                    )}
+
+                                                    {/* Save / Cancel */}
                                                     {isEditing ? (
                                                         <>
-                                                            <button type="button" onClick={() => saveEdit(testCase.id)} className="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-black">Save</button>
-                                                            <button type="button" onClick={cancelEdit} className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:shadow-sm">Cancel</button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => saveEdit(testCase.id)}
+                                                                className="h-8 rounded-lg bg-slate-900 px-3.5 text-xs font-semibold text-white transition hover:bg-black active:scale-[0.97]"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                            <SmallGhostButton
+                                                                onClick={cancelEdit}
+                                                                className="border-slate-200 text-slate-600 hover:border-slate-300"
+                                                            >
+                                                                Cancel
+                                                            </SmallGhostButton>
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <button type="button" onClick={() => handleApprove(testCase.id)} disabled={testCase.status === "APPROVED"} className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"><CheckCircle2 className="h-3.5 w-3.5" />Approve</button>
-                                                            <button type="button" onClick={() => handleDecline(testCase.id)} disabled={testCase.status === "DECLINED"} className="inline-flex items-center gap-1 rounded-xl bg-red-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"><XCircle className="h-3.5 w-3.5" />Decline</button>
+                                                            {/* Approve */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleApprove(testCase.id)}
+                                                                disabled={testCase.status === "APPROVED"}
+                                                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55"
+                                                            >
+                                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                Approve
+                                                            </button>
+                                                            {/* Decline */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDecline(testCase.id)}
+                                                                disabled={testCase.status === "DECLINED"}
+                                                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-red-500 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-600 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55"
+                                                            >
+                                                                <XCircle className="h-3.5 w-3.5" />
+                                                                Decline
+                                                            </button>
                                                         </>
                                                     )}
                                                 </div>
                                             </div>
 
+                                            {/* Expanded details */}
                                             {(isExpanded || isEditing) && (
-                                                <div className="mt-5 space-y-5 border-t border-slate-200/70 pt-5">
-                                                    <EditableTextarea label="Objective" value={isEditing ? draft.objective || "" : testCase.objective || ""} editing={isEditing} onChange={(value) => setDraft((prev) => ({ ...prev, objective: value }))} />
-                                                    <StepsBlock testCaseId={testCase.id} steps={(isEditing ? draft.steps || [] : testCase.steps || []) as TestCase["steps"]} isEditing={isEditing} draftSteps={(draft.steps || []) as TestCase["steps"]} setDraft={setDraft} />
-                                                    <EditableTextarea label="Expected result" value={isEditing ? draft.expectedResult || "" : testCase.expectedResult} editing={isEditing} onChange={(value) => setDraft((prev) => ({ ...prev, expectedResult: value }))} />
-                                                    {testCase.coverage && <div className="grid gap-3 md:grid-cols-2"><CoverageBlock title="Acceptance criteria" items={testCase.coverage.acceptanceCriteria || []} /><CoverageBlock title="Business rules" items={testCase.coverage.businessRules || []} /></div>}
+                                                <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+                                                    <EditableTextarea
+                                                        label="Objective"
+                                                        value={isEditing ? draft.objective || "" : testCase.objective || ""}
+                                                        editing={isEditing}
+                                                        onChange={(v) => setDraft((prev) => ({ ...prev, objective: v }))}
+                                                    />
+                                                    <StepsBlock
+                                                        testCaseId={testCase.id}
+                                                        steps={(isEditing ? draft.steps || [] : testCase.steps || []) as TestCase["steps"]}
+                                                        isEditing={isEditing}
+                                                        draftSteps={(draft.steps || []) as TestCase["steps"]}
+                                                        setDraft={setDraft}
+                                                    />
+                                                    <EditableTextarea
+                                                        label="Expected result"
+                                                        value={isEditing ? draft.expectedResult || "" : testCase.expectedResult}
+                                                        editing={isEditing}
+                                                        onChange={(v) => setDraft((prev) => ({ ...prev, expectedResult: v }))}
+                                                    />
+                                                    {testCase.coverage && (
+                                                        <div className="grid gap-3 md:grid-cols-2">
+                                                            <CoverageBlock title="Acceptance criteria" items={testCase.coverage.acceptanceCriteria || []} />
+                                                            <CoverageBlock title="Business rules" items={testCase.coverage.businessRules || []} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
 
+                                            {/* Automation sub-section — approved only */}
                                             {testCase.status === "APPROVED" && (
-                                                <div className="mt-5 border-t border-slate-200/70 pt-4">
+                                                <div className="mt-5 border-t border-slate-100 pt-4">
                                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                                         <div>
-                                                            <h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Automation</h4>
-                                                            <p className="mt-0.5 text-xs text-slate-400">Scripts stay collapsed to keep the review board readable.</p>
+                                                            <h4 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">Automation</h4>
+                                                            <p className="mt-0.5 text-[11px] text-slate-400">Scripts stay collapsed to keep the review board readable.</p>
                                                         </div>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            <button type="button" onClick={() => setScriptsOpenIds((prev) => ({ ...prev, [testCase.id]: !prev[testCase.id] }))} className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-slate-300 hover:text-slate-900 hover:shadow-sm">
-                                                                {scriptsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            <SmallGhostButton
+                                                                onClick={() => setScriptsOpenIds((prev) => ({ ...prev, [testCase.id]: !prev[testCase.id] }))}
+                                                                icon={scriptsOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                                                className="border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                                                            >
                                                                 {scriptsOpen ? "Hide scripts" : `Scripts (${scripts.length})`}
+                                                            </SmallGhostButton>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setScriptModalTestCase(testCase)}
+                                                                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--cap-blue)] px-3.5 text-xs font-semibold text-white transition hover:brightness-110 active:scale-[0.97]"
+                                                            >
+                                                                <Sparkles className="h-3.5 w-3.5" />
+                                                                Generate script
                                                             </button>
-                                                            <button type="button" onClick={() => setScriptModalTestCase(testCase)} className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--cap-blue)] px-3 py-1.5 text-xs font-medium text-white transition hover:brightness-110"><Sparkles className="h-3.5 w-3.5" />Generate script</button>
                                                         </div>
                                                     </div>
 
                                                     {scriptsOpen && (
-                                                        <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-                                                            {scriptGenerationsByTestCase[testCase.id]?.status === "PROCESSING" && <div className="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700"><Loader2 className="mt-0.5 h-3.5 w-3.5 animate-spin" />Script generation is running. The script will appear automatically when ready.</div>}
+                                                        <div className="mt-3.5 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                                                            {scriptGenerationsByTestCase[testCase.id]?.status === "PROCESSING" && (
+                                                                <div className="flex items-start gap-2 rounded-lg border border-amber-100 bg-amber-50 p-3 text-xs text-amber-700">
+                                                                    <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin" />
+                                                                    Script generation is running. The script will appear automatically when ready.
+                                                                </div>
+                                                            )}
                                                             {scriptGenerationTimedOutByTestCase[testCase.id] && scriptGenerationsByTestCase[testCase.id]?.status === "PROCESSING" && (
-                                                                <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
-                                                                    <div className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" /><div className="min-w-0 flex-1"><p className="text-xs font-semibold text-orange-800">Script generation is taking longer than expected.</p><p className="mt-1 text-xs text-orange-700">The job may still finish, but you can check again or mark it as failed.</p><div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={() => pollLatestScriptGeneration(testCase.id)} className="rounded-lg border border-orange-200 bg-white px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100">Check again</button><button type="button" onClick={() => { const generation = scriptGenerationsByTestCase[testCase.id]; if (!generation) return; handleMarkScriptGenerationFailed(testCase.id, generation.id); }} className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50">Mark as failed</button></div></div></div>
+                                                                <div className="rounded-lg border border-orange-200 bg-orange-50/80 p-3">
+                                                                    <div className="flex items-start gap-2">
+                                                                        <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-600" />
+                                                                        <div className="min-w-0 flex-1">
+                                                                            <p className="text-xs font-semibold text-orange-800">Script generation is taking longer than expected.</p>
+                                                                            <p className="mt-1 text-[11px] text-orange-700">The job may still finish, or you can mark it as failed.</p>
+                                                                            <div className="mt-2.5 flex flex-wrap gap-2">
+                                                                                <SmallGhostButton onClick={() => pollLatestScriptGeneration(testCase.id)} className="border-orange-200 text-orange-700 hover:bg-orange-100">Check again</SmallGhostButton>
+                                                                                <SmallGhostButton onClick={() => { const g = scriptGenerationsByTestCase[testCase.id]; if (!g) return; handleMarkScriptGenerationFailed(testCase.id, g.id); }} className="border-red-200 text-red-600 hover:bg-red-50">Mark as failed</SmallGhostButton>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                             {scriptGenerationsByTestCase[testCase.id]?.status === "FAILED" && (
-                                                                <div className="rounded-xl border border-red-100 bg-red-50 p-3"><p className="text-xs font-semibold text-red-700">Automation script generation failed.</p><p className="mt-1 text-xs text-red-600">{scriptGenerationsByTestCase[testCase.id]?.errorMessage || "Script generation failed."}</p><button type="button" onClick={() => { const generation = scriptGenerationsByTestCase[testCase.id]; if (!generation) return; handleRetryScriptGeneration(testCase.id, generation.id); }} disabled={scriptGenerating} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"><RefreshCw className="h-3.5 w-3.5" />Retry script generation</button></div>
+                                                                <div className="rounded-lg border border-red-100 bg-red-50 p-3">
+                                                                    <p className="text-xs font-semibold text-red-700">Automation script generation failed.</p>
+                                                                    <p className="mt-1 text-[11px] text-red-600">{scriptGenerationsByTestCase[testCase.id]?.errorMessage || "Script generation failed."}</p>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => { const g = scriptGenerationsByTestCase[testCase.id]; if (!g) return; handleRetryScriptGeneration(testCase.id, g.id); }}
+                                                                        disabled={scriptGenerating}
+                                                                        className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
+                                                                    >
+                                                                        <RefreshCw className="h-3 w-3" />
+                                                                        Retry script generation
+                                                                    </button>
+                                                                </div>
                                                             )}
-                                                            {scripts.length === 0 ? <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs text-slate-400">No automation scripts generated for this test case yet.</div> : scripts.map((script) => <AutomationScriptCard key={script.id} script={script} onChanged={replaceAutomationScript} onRemoved={removeAutomationScriptFromState} />)}
+                                                            {scripts.length === 0 ? (
+                                                                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-[11px] text-slate-400">
+                                                                    No automation scripts generated for this test case yet.
+                                                                </div>
+                                                            ) : (
+                                                                scripts.map((script) => (
+                                                                    <AutomationScriptCard
+                                                                        key={script.id}
+                                                                        script={script}
+                                                                        onChanged={replaceAutomationScript}
+                                                                        onRemoved={removeAutomationScriptFromState}
+                                                                    />
+                                                                ))
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
@@ -759,44 +1032,225 @@ export default function TestCaseGenerationPanel({ workItemId }: Props) {
                 </div>
             </section>
 
-            <GenerateScriptModal open={!!scriptModalTestCase} testCase={scriptModalTestCase} loading={scriptGenerating} onClose={() => setScriptModalTestCase(null)} onSubmit={async (payload) => { if (!scriptModalTestCase) return; await handleGenerateScript(scriptModalTestCase, payload); }} />
+            {/* ── Script modal ─────────────────────────────────────────── */}
+            <GenerateScriptModal
+                open={!!scriptModalTestCase}
+                testCase={scriptModalTestCase}
+                loading={scriptGenerating}
+                onClose={() => setScriptModalTestCase(null)}
+                onSubmit={async (payload) => {
+                    if (!scriptModalTestCase) return;
+                    await handleGenerateScript(scriptModalTestCase, payload);
+                }}
+            />
         </>
     );
 }
 
-function StatusMeta({ children }: { children: React.ReactNode }) {
-    return <span className="rounded-full bg-white px-3 py-1 font-medium text-slate-600 ring-1 ring-slate-200">{children}</span>;
+/* ─────────────────────────────────────────────────────────────
+   Shared primitive components
+──────────────────────────────────────────────────────────────── */
+
+/** Solid primary CTA button */
+function PrimaryButton({
+                           children,
+                           onClick,
+                           disabled,
+                           loading,
+                       }: {
+    children: React.ReactNode;
+    onClick: () => void;
+    disabled?: boolean;
+    loading?: boolean;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className="inline-flex h-9 items-center gap-2 rounded-xl bg-[var(--cap-blue)] px-4 text-[13px] font-semibold text-white shadow-[0_1px_3px_0_rgb(0,0,0,0.14)] transition-all hover:brightness-110 hover:shadow-md active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55"
+        >
+            {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {children}
+        </button>
+    );
 }
 
-function InfoBanner({ tone, icon, title, children }: { tone: "amber" | "red"; icon: React.ReactNode; title: string; children: React.ReactNode }) {
-    const cls = tone === "red" ? "border-red-100 bg-red-50 text-red-700" : "border-amber-100 bg-amber-50 text-amber-700";
+/** Standard ghost / secondary button (header-level) */
+function GhostButton({
+                         children,
+                         onClick,
+                         icon,
+                         className = "",
+                     }: {
+    children: React.ReactNode;
+    onClick: () => void;
+    icon?: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`inline-flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 text-[13px] font-medium text-slate-600 transition-all hover:border-slate-300 hover:text-slate-900 hover:shadow-sm active:scale-[0.97] ${className}`}
+        >
+            {icon}
+            {children}
+        </button>
+    );
+}
+
+/** Small ghost button used inside cards and banners */
+function SmallGhostButton({
+                              children,
+                              onClick,
+                              disabled,
+                              icon,
+                              className = "",
+                          }: {
+    children: React.ReactNode;
+    onClick: () => void;
+    disabled?: boolean;
+    icon?: React.ReactNode;
+    className?: string;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={`inline-flex h-8 items-center gap-1.5 rounded-lg border bg-white px-3 text-xs font-medium transition-all active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
+        >
+            {icon}
+            {children}
+        </button>
+    );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sub-components
+──────────────────────────────────────────────────────────────── */
+
+function StatusMeta({ children }: { children: React.ReactNode }) {
+    return (
+        <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">
+            {children}
+        </span>
+    );
+}
+
+function InfoBanner({
+                        tone,
+                        icon,
+                        title,
+                        children,
+                    }: {
+    tone: "amber" | "red";
+    icon: React.ReactNode;
+    title: string;
+    children: React.ReactNode;
+}) {
+    const wrap =
+        tone === "red"
+            ? "border-red-100 bg-red-50/80 text-red-700"
+            : "border-amber-100 bg-amber-50/80 text-amber-700";
     const titleCls = tone === "red" ? "text-red-800" : "text-amber-800";
 
-    return <div className={`flex items-start gap-3 rounded-2xl border p-4 text-sm ${cls}`}><div className="mt-0.5 shrink-0">{icon}</div><div><p className={`font-semibold ${titleCls}`}>{title}</p><p className="mt-0.5 opacity-90">{children}</p></div></div>;
+    return (
+        <div className={`flex items-start gap-3 rounded-xl border p-4 text-sm ${wrap}`}>
+            <div className="mt-0.5 shrink-0">{icon}</div>
+            <div>
+                <p className={`text-[13px] font-semibold ${titleCls}`}>{title}</p>
+                <p className="mt-0.5 text-xs leading-relaxed opacity-90">{children}</p>
+            </div>
+        </div>
+    );
 }
 
-function GenerationHistory({ generationHistory, isBusy, onRetry }: { generationHistory: TestCaseGeneration[]; isBusy: boolean; onRetry: (generationId: string) => Promise<void> }) {
+function GenerationHistory({
+                               generationHistory,
+                               isBusy,
+                               onRetry,
+                           }: {
+    generationHistory: TestCaseGeneration[];
+    isBusy: boolean;
+    onRetry: (generationId: string) => Promise<void>;
+}) {
     return (
-        <div className="rounded-2xl border border-slate-200/60 bg-slate-50/80 p-5">
+        <div className="rounded-xl border border-slate-200/60 bg-slate-50/70 p-5">
             <div className="flex items-center justify-between gap-3">
-                <div><h3 className="text-sm font-semibold text-slate-900">Generation History</h3><p className="mt-0.5 text-xs text-slate-400">Previous AI generation attempts for this work item.</p></div>
-                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-500">{generationHistory.length} attempt{generationHistory.length === 1 ? "" : "s"}</span>
+                <div>
+                    <h3 className="text-[13px] font-semibold text-slate-900">Generation History</h3>
+                    <p className="mt-0.5 text-[11px] text-slate-400">Previous AI generation attempts for this work item.</p>
+                </div>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                    {generationHistory.length} attempt{generationHistory.length === 1 ? "" : "s"}
+                </span>
             </div>
-            {generationHistory.length === 0 ? <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">No generation history yet.</div> : (
+
+            {generationHistory.length === 0 ? (
+                <div className="mt-4 rounded-lg border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+                    No generation history yet.
+                </div>
+            ) : (
                 <div className="mt-4 space-y-3">
                     {generationHistory.map((generation) => (
-                        <div key={generation.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]">
+                        <div
+                            key={generation.id}
+                            className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]"
+                        >
                             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                 <div>
-                                    <div className="flex flex-wrap items-center gap-2"><GenerationStatusBadge status={generation.status} />{generation.provider && <StatusMeta>{generation.provider} / {generation.model}</StatusMeta>}{typeof generation.confidence === "number" && <StatusMeta>{Math.round(generation.confidence * 100)}% confidence</StatusMeta>}</div>
-                                    <p className="mt-2 text-xs text-slate-400">Created {new Date(generation.createdAt).toLocaleString()}{generation.completedAt ? ` · Completed ${new Date(generation.completedAt).toLocaleString()}` : ""}</p>
-                                    {generation.promptVersion && <p className="mt-1 font-mono text-[11px] text-slate-400">{generation.promptVersion}</p>}
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                        <GenerationStatusBadge status={generation.status} />
+                                        {generation.provider && (
+                                            <StatusMeta>{generation.provider} / {generation.model}</StatusMeta>
+                                        )}
+                                        {typeof generation.confidence === "number" && (
+                                            <StatusMeta>{Math.round(generation.confidence * 100)}% confidence</StatusMeta>
+                                        )}
+                                    </div>
+                                    <p className="mt-2 text-[11px] text-slate-400">
+                                        Created {new Date(generation.createdAt).toLocaleString()}
+                                        {generation.completedAt
+                                            ? ` · Completed ${new Date(generation.completedAt).toLocaleString()}`
+                                            : ""}
+                                    </p>
+                                    {generation.promptVersion && (
+                                        <p className="mt-1 font-mono text-[10.5px] text-slate-400">{generation.promptVersion}</p>
+                                    )}
                                 </div>
-                                <div className="text-right text-xs text-slate-500"><p className="text-lg font-bold text-slate-700">{generation.testCases?.length || 0}</p><p>test cases</p></div>
+                                <div className="text-right text-xs text-slate-500">
+                                    <p className="text-2xl font-bold tabular-nums text-slate-700">{generation.testCases?.length || 0}</p>
+                                    <p>test cases</p>
+                                </div>
                             </div>
-                            {generation.errorMessage && <div className="mt-3 rounded-lg border border-red-100 bg-red-50 p-3 text-xs text-red-600">{generation.errorMessage}</div>}
-                            {generation.warnings && generation.warnings.length > 0 && <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-700">Warnings</p><ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-amber-700">{generation.warnings.map((warning, index) => <li key={`${generation.id}-warning-${index}`}>{warning}</li>)}</ul></div>}
-                            {generation.status === "FAILED" && <button type="button" onClick={() => onRetry(generation.id)} disabled={isBusy} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-60"><RefreshCw className="h-3.5 w-3.5" />Retry this generation</button>}
+                            {generation.errorMessage && (
+                                <div className="mt-3 rounded-lg border border-red-100 bg-red-50 p-3 text-xs text-red-600">
+                                    {generation.errorMessage}
+                                </div>
+                            )}
+                            {generation.warnings && generation.warnings.length > 0 && (
+                                <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 p-3">
+                                    <p className="text-xs font-semibold text-amber-700">Warnings</p>
+                                    <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-amber-700">
+                                        {generation.warnings.map((w, i) => (
+                                            <li key={`${generation.id}-warning-${i}`}>{w}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {generation.status === "FAILED" && (
+                                <button
+                                    type="button"
+                                    onClick={() => onRetry(generation.id)}
+                                    disabled={isBusy}
+                                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 transition hover:bg-red-100 disabled:opacity-60"
+                                >
+                                    <RefreshCw className="h-3.5 w-3.5" />
+                                    Retry this generation
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>
@@ -805,53 +1259,284 @@ function GenerationHistory({ generationHistory, isBusy, onRetry }: { generationH
     );
 }
 
-function ToggleOption({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
-    return <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm transition hover:border-slate-300 hover:shadow-sm"><span className="font-medium text-slate-800">{label}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="accent-[var(--cap-blue)]" /></label>;
+function ToggleOption({
+                          label,
+                          checked,
+                          onChange,
+                      }: {
+    label: string;
+    checked: boolean;
+    onChange: (v: boolean) => void;
+}) {
+    return (
+        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-[13px] transition hover:border-slate-300 hover:shadow-sm">
+            <span className="font-medium text-slate-800">{label}</span>
+            <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => onChange(e.target.checked)}
+                className="accent-[var(--cap-blue)]"
+            />
+        </label>
+    );
 }
 
-function FilterSelect({ label, value, onChange, options, compact = false }: { label: string; value: string; onChange: (value: string) => void; options: { label: string; value: string }[]; compact?: boolean }) {
-    return <label className={compact ? "min-w-36" : ""}><span className="sr-only">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:bg-white focus:ring-2 focus:ring-[var(--cap-blue)]/10">{options.map((option) => <option key={`${label}-${option.value}`} value={option.value}>{option.label}</option>)}</select></label>;
+function FilterSelect({
+                          label,
+                          value,
+                          onChange,
+                          options,
+                          compact = false,
+                      }: {
+    label: string;
+    value: string;
+    onChange: (v: string) => void;
+    options: { label: string; value: string }[];
+    compact?: boolean;
+}) {
+    return (
+        <label className={compact ? "min-w-[9rem]" : ""}>
+            <span className="sr-only">{label}</span>
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/70 px-3 text-[13px] text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:bg-white focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+            >
+                {options.map((o) => (
+                    <option key={`${label}-${o.value}`} value={o.value}>
+                        {o.label}
+                    </option>
+                ))}
+            </select>
+        </label>
+    );
 }
 
-function StatCard({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
-    return <div className="rounded-2xl border border-slate-200/60 bg-white p-5 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]"><div className="flex items-start justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p><p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{value}</p></div><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--cap-blue)]/8 text-[var(--cap-blue)]">{icon}</div></div></div>;
+function StatCard({
+                      label,
+                      value,
+                      icon,
+                  }: {
+    label: string;
+    value: number;
+    icon: React.ReactNode;
+}) {
+    return (
+        <div className="rounded-xl border border-slate-200/60 bg-white p-5 shadow-[0_1px_3px_0_rgb(0,0,0,0.04)]">
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-[10.5px] font-bold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+                    <p className="mt-2 text-[2rem] font-bold tabular-nums leading-none tracking-tight text-slate-900">{value}</p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--cap-blue)]/8 text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/10">
+                    {icon}
+                </div>
+            </div>
+        </div>
+    );
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
-    return <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">{children}</span>;
+    return (
+        <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200">
+            {children}
+        </span>
+    );
 }
 
 function PriorityBadge({ priority }: { priority: TestCasePriority }) {
-    const cls = priority === "CRITICAL" ? "bg-red-50 text-red-700 ring-red-200" : priority === "HIGH" ? "bg-orange-50 text-orange-700 ring-orange-200" : priority === "MEDIUM" ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-slate-50 text-slate-600 ring-slate-200";
-    return <span className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${cls}`}>{priorityLabels[priority]}</span>;
+    const cls =
+        priority === "CRITICAL"
+            ? "bg-red-50 text-red-700 ring-red-200"
+            : priority === "HIGH"
+                ? "bg-orange-50 text-orange-700 ring-orange-200"
+                : priority === "MEDIUM"
+                    ? "bg-amber-50 text-amber-700 ring-amber-200"
+                    : "bg-slate-50 text-slate-600 ring-slate-200";
+    return (
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ${cls}`}>
+            {priorityLabels[priority]}
+        </span>
+    );
 }
 
 function StatusBadge({ status }: { status: TestCase["status"] }) {
-    const cls = status === "APPROVED" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : status === "DECLINED" ? "bg-red-50 text-red-700 ring-red-200" : status === "EDITED" ? "bg-blue-50 text-blue-700 ring-blue-200" : "bg-amber-50 text-amber-700 ring-amber-200";
-    return <span className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${cls}`}>{status}</span>;
+    const cls =
+        status === "APPROVED"
+            ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+            : status === "DECLINED"
+                ? "bg-red-50 text-red-700 ring-red-200"
+                : status === "EDITED"
+                    ? "bg-blue-50 text-blue-700 ring-blue-200"
+                    : "bg-amber-50 text-amber-700 ring-amber-200";
+    return (
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ${cls}`}>
+            {status}
+        </span>
+    );
 }
 
 function GenerationStatusBadge({ status }: { status: TestCaseGeneration["status"] }) {
-    const cls = status === "COMPLETED" ? "bg-emerald-50 text-emerald-700 ring-emerald-200" : status === "FAILED" ? "bg-red-50 text-red-700 ring-red-200" : status === "PROCESSING" ? "bg-amber-50 text-amber-700 ring-amber-200" : "bg-slate-50 text-slate-600 ring-slate-200";
-    return <span className={`rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${cls}`}>{status}</span>;
+    const cls =
+        status === "COMPLETED"
+            ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+            : status === "FAILED"
+                ? "bg-red-50 text-red-700 ring-red-200"
+                : status === "PROCESSING"
+                    ? "bg-amber-50 text-amber-700 ring-amber-200"
+                    : "bg-slate-50 text-slate-600 ring-slate-200";
+    return (
+        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ring-1 ${cls}`}>
+            {status}
+        </span>
+    );
 }
 
-function EditableTextarea({ label, value, editing, onChange }: { label: string; value: string; editing: boolean; onChange: (value: string) => void }) {
-    return <div><h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{label}</h4>{editing ? <textarea value={value} onChange={(event) => onChange(event.target.value)} rows={3} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10" /> : <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">{value || "—"}</p>}</div>;
+function EditableTextarea({
+                              label,
+                              value,
+                              editing,
+                              onChange,
+                          }: {
+    label: string;
+    value: string;
+    editing: boolean;
+    onChange: (v: string) => void;
+}) {
+    return (
+        <div>
+            <h4 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</h4>
+            {editing ? (
+                <textarea
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    rows={3}
+                    className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                />
+            ) : (
+                <p className="mt-2 whitespace-pre-line text-[13px] leading-relaxed text-slate-700">
+                    {value || "—"}
+                </p>
+            )}
+        </div>
+    );
 }
 
-function StepsBlock({ testCaseId, steps, isEditing, draftSteps, setDraft }: { testCaseId: string; steps: TestCase["steps"]; isEditing: boolean; draftSteps: TestCase["steps"]; setDraft: React.Dispatch<React.SetStateAction<TestCaseDraft>> }) {
-    return <div><h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">Steps</h4><div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">{steps.map((step, stepIndex) => <div key={`${testCaseId}-step-${stepIndex}`} className="grid gap-3 border-b border-slate-100 p-4 last:border-b-0 md:grid-cols-[48px_1fr]"><div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-xs font-bold text-slate-500 ring-1 ring-slate-100">{stepIndex + 1}</div><div className="space-y-2 text-sm">{isEditing ? <input value={step.action} onChange={(event) => { const next = [...draftSteps]; next[stepIndex] = { ...next[stepIndex], action: event.target.value }; setDraft((prev) => ({ ...prev, steps: next })); }} className="w-full rounded-lg border border-slate-200 px-2 py-1 outline-none focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10" /> : <p className="font-medium text-slate-900">{step.action}</p>}<div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-500"><span className="font-semibold text-slate-600">Expected: </span>{isEditing ? <input value={step.expected || ""} onChange={(event) => { const next = [...draftSteps]; next[stepIndex] = { ...next[stepIndex], expected: event.target.value }; setDraft((prev) => ({ ...prev, steps: next })); }} className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1 outline-none focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10" /> : step.expected || "—"}</div></div></div>)}</div></div>;
+function StepsBlock({
+                        testCaseId,
+                        steps,
+                        isEditing,
+                        draftSteps,
+                        setDraft,
+                    }: {
+    testCaseId: string;
+    steps: TestCase["steps"];
+    isEditing: boolean;
+    draftSteps: TestCase["steps"];
+    setDraft: React.Dispatch<React.SetStateAction<TestCaseDraft>>;
+}) {
+    return (
+        <div>
+            <h4 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">Steps</h4>
+            <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                {steps.map((step, i) => (
+                    <div
+                        key={`${testCaseId}-step-${i}`}
+                        className="grid gap-3 border-b border-slate-100 p-4 last:border-b-0 md:grid-cols-[40px_1fr]"
+                    >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-50 text-[11px] font-bold text-slate-500 ring-1 ring-slate-100">
+                            {i + 1}
+                        </div>
+                        <div className="space-y-2 text-[13px]">
+                            {isEditing ? (
+                                <input
+                                    value={step.action}
+                                    onChange={(e) => {
+                                        const next = [...draftSteps];
+                                        next[i] = { ...next[i], action: e.target.value };
+                                        setDraft((prev) => ({ ...prev, steps: next }));
+                                    }}
+                                    className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm outline-none focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                />
+                            ) : (
+                                <p className="font-medium text-slate-900">{step.action}</p>
+                            )}
+                            <div className="rounded-lg bg-slate-50 px-3 py-2 text-[12px] text-slate-500">
+                                <span className="font-semibold text-slate-600">Expected: </span>
+                                {isEditing ? (
+                                    <input
+                                        value={step.expected || ""}
+                                        onChange={(e) => {
+                                            const next = [...draftSteps];
+                                            next[i] = { ...next[i], expected: e.target.value };
+                                            setDraft((prev) => ({ ...prev, steps: next }));
+                                        }}
+                                        className="mt-1 w-full rounded-lg border border-slate-200 px-2.5 py-1.5 outline-none focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                    />
+                                ) : (
+                                    step.expected || "—"
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
 }
 
 function CoverageBlock({ title, items }: { title: string; items: string[] }) {
-    return <div className="rounded-2xl border border-slate-200 bg-white p-4"><h4 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{title}</h4>{items.length === 0 ? <p className="mt-2 text-sm text-slate-400">No explicit coverage.</p> : <ul className="mt-2 list-disc space-y-1 pl-4 text-sm leading-6 text-slate-700">{items.map((item, index) => <li key={`${title}-${index}`}>{item}</li>)}</ul>}</div>;
+    return (
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <h4 className="text-[10.5px] font-bold uppercase tracking-[0.16em] text-slate-400">{title}</h4>
+            {items.length === 0 ? (
+                <p className="mt-2 text-[13px] text-slate-400">No explicit coverage.</p>
+            ) : (
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-[13px] leading-relaxed text-slate-700">
+                    {items.map((item, i) => (
+                        <li key={`${title}-${i}`}>{item}</li>
+                    ))}
+                </ul>
+            )}
+        </div>
+    );
 }
 
 function EmptyInitialState({ isProcessing }: { isProcessing: boolean }) {
-    return <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center"><div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--cap-blue)]/8 text-[var(--cap-blue)]"><Sparkles size={18} strokeWidth={1.6} /></div><p className="text-sm font-semibold text-slate-700">{isProcessing ? "AI is generating test cases…" : "No test cases generated yet."}</p><p className="mt-1 text-sm text-slate-400">{isProcessing ? "Generated test cases will appear here when ready." : "Click generate to create manual QA test cases from this work item."}</p></div>;
+    return (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-10 text-center">
+            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--cap-blue)]/8 text-[var(--cap-blue)]">
+                <Sparkles size={18} strokeWidth={1.6} />
+            </div>
+            <p className="text-[13px] font-semibold text-slate-700">
+                {isProcessing ? "AI is generating test cases…" : "No test cases generated yet."}
+            </p>
+            <p className="mt-1 text-[12px] text-slate-400">
+                {isProcessing
+                    ? "Generated test cases will appear here when ready."
+                    : "Click generate to create manual QA test cases from this work item."}
+            </p>
+        </div>
+    );
 }
 
 function EmptyFilterState({ onClear }: { onClear: () => void }) {
-    return <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center"><div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-500"><Search size={18} strokeWidth={1.8} /></div><p className="text-sm font-semibold text-slate-800">No test cases match your filters.</p><p className="mt-1 text-sm text-slate-400">Try changing the search text, status, priority, type, or script filter.</p><button type="button" onClick={onClear} className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900">Clear filters</button></div>;
+    return (
+        <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center">
+            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                <Search size={18} strokeWidth={1.8} />
+            </div>
+            <p className="text-[13px] font-semibold text-slate-800">No test cases match your filters.</p>
+            <p className="mt-1 text-[12px] text-slate-400">
+                Try changing the search text, status, priority, type, or script filter.
+            </p>
+            <button
+                type="button"
+                onClick={onClear}
+                className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-[13px] font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900 hover:shadow-sm"
+            >
+                Clear filters
+            </button>
+        </div>
+    );
 }

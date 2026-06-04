@@ -48,11 +48,7 @@ type Props = {
 
 type DetailTab = "code" | "runs" | "notes";
 
-export default function AutomationScriptCard({
-                                                 script,
-                                                 onChanged,
-                                                 onRemoved,
-                                             }: Props) {
+export default function AutomationScriptCard({ script, onChanged, onRemoved }: Props) {
     const [editing, setEditing] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<DetailTab>("code");
@@ -65,15 +61,13 @@ export default function AutomationScriptCard({
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [liveExecution, setLiveExecution] =
-        useState<AutomationScriptExecution | null>(null);
+    const [liveExecution, setLiveExecution] = useState<AutomationScriptExecution | null>(null);
     const [runningLive, setRunningLive] = useState(false);
     const eventSourceRef = useRef<EventSource | null>(null);
 
     const [runModalOpen, setRunModalOpen] = useState(false);
     const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
-    const [selectedExecution, setSelectedExecution] =
-        useState<AutomationScriptExecution | null>(null);
+    const [selectedExecution, setSelectedExecution] = useState<AutomationScriptExecution | null>(null);
 
     useEffect(() => {
         return () => {
@@ -98,12 +92,7 @@ export default function AutomationScriptCard({
 
     const save = () =>
         wrap(async () => {
-            const updated = await automationScriptService.update(script.id, {
-                fileName,
-                code,
-                explanation,
-            });
-
+            const updated = await automationScriptService.update(script.id, { fileName, code, explanation });
             onChanged(updated);
             setEditing(false);
         });
@@ -127,15 +116,8 @@ export default function AutomationScriptCard({
         });
 
     const download = () => {
-        const url = URL.createObjectURL(
-            new Blob([script.code], { type: "text/plain;charset=utf-8" })
-        );
-
-        Object.assign(document.createElement("a"), {
-            href: url,
-            download: script.fileName,
-        }).click();
-
+        const url = URL.createObjectURL(new Blob([script.code], { type: "text/plain;charset=utf-8" }));
+        Object.assign(document.createElement("a"), { href: url, download: script.fileName }).click();
         URL.revokeObjectURL(url);
         setActionsOpen(false);
     };
@@ -157,7 +139,6 @@ export default function AutomationScriptCard({
             }
 
             const response = await runAutomationScriptLive(script.id, payload);
-
             setLiveExecution(response.execution);
             setRunModalOpen(false);
 
@@ -165,18 +146,13 @@ export default function AutomationScriptCard({
                 response.execution.id,
                 async (execution) => {
                     setLiveExecution(execution);
-
-                    const isFinal =
-                        execution.status !== "QUEUED" && execution.status !== "RUNNING";
-
+                    const isFinal = execution.status !== "QUEUED" && execution.status !== "RUNNING";
                     if (isFinal) {
                         setTimeout(async () => {
                             const finalExecution = await getScriptExecution(execution.id);
-
                             setLiveExecution(finalExecution);
                             setRunningLive(false);
-                            setHistoryRefreshKey((value) => value + 1);
-
+                            setHistoryRefreshKey((v) => v + 1);
                             if (eventSourceRef.current) {
                                 eventSourceRef.current.close();
                                 eventSourceRef.current = null;
@@ -197,14 +173,11 @@ export default function AutomationScriptCard({
 
     const handleCancelLiveExecution = async () => {
         if (!liveExecution) return;
-
         try {
             const updated = await cancelScriptExecution(liveExecution.id);
-
             setLiveExecution(updated);
             setRunningLive(false);
-            setHistoryRefreshKey((value) => value + 1);
-
+            setHistoryRefreshKey((v) => v + 1);
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();
                 eventSourceRef.current = null;
@@ -224,60 +197,66 @@ export default function AutomationScriptCard({
 
     return (
         <div
-            className={`overflow-hidden rounded-2xl border bg-white shadow-[0_1px_3px_0_rgb(0,0,0,0.04)] transition ${
+            className={`overflow-hidden rounded-xl border bg-white shadow-[0_1px_3px_0_rgb(0,0,0,0.04)] transition-all duration-200 ${
                 isRemoved
                     ? "border-slate-100 opacity-60"
-                    : "border-slate-200/70 hover:border-[var(--cap-blue)]/20 hover:shadow-md"
+                    : "border-slate-200/70 hover:-translate-y-px hover:border-[var(--cap-blue)]/20 hover:shadow-[0_4px_16px_0_rgb(0,0,0,0.07)]"
             }`}
         >
-            {/* Compact summary. This is the only part users see by default. */}
+            {/* ── Compact summary row ─────────────────────────────────── */}
             <div className="p-4 sm:p-5">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                    <div className="flex min-w-0 items-start gap-3">
+
+                    {/* Left: icon + filename + meta */}
+                    <div className="flex min-w-0 items-start gap-3.5">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--cap-blue)]/8 text-[var(--cap-blue)] ring-1 ring-[var(--cap-blue)]/10">
-                            <FileCode2 size={18} strokeWidth={1.8} />
+                            <FileCode2 size={17} strokeWidth={1.8} />
                         </div>
 
                         <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
+                            {/* Filename + status */}
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 {editing ? (
                                     <input
                                         value={fileName}
-                                        onChange={(event) => setFileName(event.target.value)}
-                                        className="min-w-[240px] rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm font-semibold text-slate-800 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                        onChange={(e) => setFileName(e.target.value)}
+                                        className="min-w-[240px] rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-mono text-sm font-semibold text-slate-800 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
                                     />
                                 ) : (
-                                    <h4 className="truncate font-mono text-sm font-bold text-slate-900">
+                                    <h4 className="truncate font-mono text-[13.5px] font-bold tracking-tight text-slate-900">
                                         {script.fileName}
                                     </h4>
                                 )}
-
                                 <StatusPill status={script.status} />
                                 {liveExecution && <ExecutionStatusPill status={liveExecution.status} />}
                             </div>
 
-                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                            {/* Meta pills */}
+                            <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
                                 <Pill>{script.framework}</Pill>
                                 <Pill>{script.language}</Pill>
                                 <Pill>{lineCount} lines</Pill>
                                 {hasWarnings && <WarningMiniPill count={script.warnings?.length ?? 0} />}
                             </div>
 
+                            {/* Explanation preview */}
                             {!editing && script.explanation && (
-                                <p className="mt-3 line-clamp-2 max-w-3xl text-sm leading-6 text-slate-500">
+                                <p className="mt-2.5 line-clamp-2 max-w-3xl text-[13px] leading-relaxed text-slate-500">
                                     {script.explanation}
                                 </p>
                             )}
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                    {/* Right: action buttons — all h-8, items-center keeps them on one baseline */}
+                    <div className="flex items-center gap-1.5 xl:justify-end">
+                        {/* Run — primary CTA */}
                         <button
                             type="button"
                             onClick={() => setRunModalOpen(true)}
                             disabled={busy || runningLive || isRemoved || !isApproved}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-[var(--cap-blue)] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                             title={isApproved ? "Configure and run" : "Approve script before running"}
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--cap-blue)] px-3.5 text-xs font-semibold text-white shadow-sm transition-all hover:brightness-110 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {runningLive ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -287,18 +266,20 @@ export default function AutomationScriptCard({
                             Run
                         </button>
 
+                        {/* Approve — only when not yet approved */}
                         {!isApproved && !isRemoved && (
                             <button
                                 type="button"
                                 onClick={approve}
                                 disabled={busy}
-                                className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-45"
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50 px-3.5 text-xs font-semibold text-emerald-700 transition-all hover:border-emerald-300 hover:bg-emerald-100 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                                 Approve
                             </button>
                         )}
 
+                        {/* Open / Close details */}
                         <button
                             type="button"
                             onClick={() => {
@@ -309,71 +290,53 @@ export default function AutomationScriptCard({
                                     openDetails("code");
                                 }
                             }}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition-all hover:border-slate-300 hover:text-slate-900 hover:shadow-sm active:scale-[0.97]"
                         >
-                            {detailsOpen ? (
-                                <ChevronUp className="h-3.5 w-3.5" />
-                            ) : (
-                                <ChevronDown className="h-3.5 w-3.5" />
-                            )}
+                            {detailsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                             {detailsOpen ? "Close" : "Open"}
                         </button>
 
-                        <div className="relative">
+                        {/* ⋯ More actions — relative wrapper is inline-flex so it sits on the same baseline */}
+                        <div className="relative inline-flex">
                             <button
                                 type="button"
-                                onClick={() => setActionsOpen((value) => !value)}
-                                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:text-slate-900"
+                                onClick={() => setActionsOpen((v) => !v)}
                                 aria-label="More script actions"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition-all hover:border-slate-300 hover:text-slate-900 hover:shadow-sm active:scale-[0.97]"
                             >
                                 <MoreHorizontal className="h-4 w-4" />
                             </button>
 
                             {actionsOpen && (
-                                <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                                <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-[0_8px_24px_0_rgb(0,0,0,0.1)]">
                                     <MenuButton
                                         icon={<Pencil className="h-3.5 w-3.5" />}
                                         disabled={busy || isRemoved}
-                                        onClick={() => {
-                                            openDetails("code");
-                                            setEditing(true);
-                                            setActionsOpen(false);
-                                        }}
+                                        onClick={() => { openDetails("code"); setEditing(true); setActionsOpen(false); }}
                                     >
                                         Edit script
                                     </MenuButton>
-
                                     <MenuButton
                                         icon={<Download className="h-3.5 w-3.5" />}
                                         onClick={download}
                                     >
                                         Download
                                     </MenuButton>
-
                                     <MenuButton
                                         icon={<TerminalSquare className="h-3.5 w-3.5" />}
-                                        onClick={() => {
-                                            openDetails("runs");
-                                            setActionsOpen(false);
-                                        }}
+                                        onClick={() => { openDetails("runs"); setActionsOpen(false); }}
                                     >
                                         View runs
                                     </MenuButton>
-
                                     {hasNotes && (
                                         <MenuButton
                                             icon={<Info className="h-3.5 w-3.5" />}
-                                            onClick={() => {
-                                                openDetails("notes");
-                                                setActionsOpen(false);
-                                            }}
+                                            onClick={() => { openDetails("notes"); setActionsOpen(false); }}
                                         >
                                             View notes
                                         </MenuButton>
                                     )}
-
                                     <div className="my-1 h-px bg-slate-100" />
-
                                     <MenuButton
                                         icon={<XCircle className="h-3.5 w-3.5" />}
                                         disabled={busy || isDeclined || isRemoved}
@@ -382,7 +345,6 @@ export default function AutomationScriptCard({
                                     >
                                         Decline
                                     </MenuButton>
-
                                     <MenuButton
                                         icon={<Trash2 className="h-3.5 w-3.5" />}
                                         disabled={busy}
@@ -397,75 +359,61 @@ export default function AutomationScriptCard({
                     </div>
                 </div>
 
+                {/* Error */}
                 {error && (
-                    <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
+                    <div className="mt-3.5 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-[13px] text-red-600">
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />
                         {error}
                     </div>
                 )}
             </div>
 
+            {/* ── Expanded details panel ──────────────────────────────── */}
             {detailsOpen && (
-                <div className="border-t border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+                <div className="border-t border-slate-100 bg-slate-50/60 p-4 sm:p-5">
+                    {/* Tab bar + edit controls */}
                     <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                         <div className="inline-flex w-fit rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
-                            <TabButton
-                                active={activeTab === "code"}
-                                icon={<Code2 className="h-3.5 w-3.5" />}
-                                onClick={() => setActiveTab("code")}
-                            >
+                            <TabButton active={activeTab === "code"} icon={<Code2 className="h-3.5 w-3.5" />} onClick={() => setActiveTab("code")}>
                                 Code
                             </TabButton>
-                            <TabButton
-                                active={activeTab === "runs"}
-                                icon={<TerminalSquare className="h-3.5 w-3.5" />}
-                                onClick={() => setActiveTab("runs")}
-                            >
+                            <TabButton active={activeTab === "runs"} icon={<TerminalSquare className="h-3.5 w-3.5" />} onClick={() => setActiveTab("runs")}>
                                 Runs
                             </TabButton>
-                            <TabButton
-                                active={activeTab === "notes"}
-                                icon={<Info className="h-3.5 w-3.5" />}
-                                onClick={() => setActiveTab("notes")}
-                            >
+                            <TabButton active={activeTab === "notes"} icon={<Info className="h-3.5 w-3.5" />} onClick={() => setActiveTab("notes")}>
                                 Notes
                             </TabButton>
                         </div>
 
                         {editing ? (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5">
                                 <button
                                     type="button"
                                     onClick={save}
                                     disabled={busy}
-                                    className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-black disabled:opacity-50"
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 text-xs font-semibold text-white transition-all hover:bg-black active:scale-[0.97] disabled:opacity-50"
                                 >
                                     <Save className="h-3.5 w-3.5" />
                                     Save changes
                                 </button>
-
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setEditing(false);
-                                        setFileName(script.fileName);
-                                        setCode(script.code);
-                                        setExplanation(script.explanation || "");
-                                    }}
+                                    onClick={() => { setEditing(false); setFileName(script.fileName); setCode(script.code); setExplanation(script.explanation || ""); }}
                                     disabled={busy}
-                                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 transition-all hover:border-slate-300 hover:text-slate-900 active:scale-[0.97] disabled:opacity-50"
                                 >
                                     <X className="h-3.5 w-3.5" />
                                     Cancel
                                 </button>
                             </div>
                         ) : (
-                            <p className="text-xs text-slate-400">
+                            <p className="text-[11px] text-slate-400">
                                 Details are separated into tabs so only one task is visible at a time.
                             </p>
                         )}
                     </div>
 
+                    {/* ── Code tab ─────────────────────────────────────── */}
                     {activeTab === "code" && (
                         <div className="space-y-4">
                             {editing && (
@@ -473,9 +421,9 @@ export default function AutomationScriptCard({
                                     <FieldLabel>Explanation</FieldLabel>
                                     <textarea
                                         value={explanation}
-                                        onChange={(event) => setExplanation(event.target.value)}
+                                        onChange={(e) => setExplanation(e.target.value)}
                                         rows={3}
-                                        className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                        className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
                                     />
                                 </div>
                             )}
@@ -485,58 +433,45 @@ export default function AutomationScriptCard({
                                     <FieldLabel>Code</FieldLabel>
                                     <textarea
                                         value={code}
-                                        onChange={(event) => setCode(event.target.value)}
+                                        onChange={(e) => setCode(e.target.value)}
                                         rows={18}
-                                        className="w-full resize-none rounded-2xl border border-slate-800 bg-slate-950 px-4 py-3 font-mono text-xs leading-relaxed text-slate-100 outline-none transition focus:border-[var(--cap-blue)] focus:ring-2 focus:ring-[var(--cap-blue)]/20"
+                                        className="w-full resize-none rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 font-mono text-xs leading-relaxed text-slate-100 outline-none transition focus:border-[var(--cap-blue)] focus:ring-2 focus:ring-[var(--cap-blue)]/20"
                                     />
                                 </div>
                             ) : (
-                                <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
-                                    <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
-                    <span className="truncate font-mono text-[11px] text-slate-400">
-                      {script.fileName}
-                    </span>
-
+                                <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+                                    {/* Code header bar */}
+                                    <div className="flex items-center justify-between border-b border-slate-800/80 bg-slate-900 px-4 py-2.5">
+                                        <div className="flex items-center gap-2.5">
+                                            {/* Traffic-light dots */}
+                                            <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
+                                            <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
+                                            <span className="h-2.5 w-2.5 rounded-full bg-slate-700" />
+                                            <span className="ml-1 truncate font-mono text-[11px] text-slate-400">{script.fileName}</span>
+                                        </div>
                                         <button
                                             type="button"
-                                            onClick={() => setCodeExpanded((value) => !value)}
-                                            className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 transition hover:text-white"
+                                            onClick={() => setCodeExpanded((v) => !v)}
+                                            className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 transition hover:text-slate-200"
                                         >
-                                            {codeExpanded ? (
-                                                <ChevronUp className="h-3 w-3" />
-                                            ) : (
-                                                <ChevronDown className="h-3 w-3" />
-                                            )}
+                                            {codeExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                             {codeExpanded ? "Collapse" : "Expand"}
                                         </button>
                                     </div>
-
-                                    <pre
-                                        className={`overflow-auto px-4 py-3 text-xs leading-relaxed text-slate-100 ${
-                                            codeExpanded ? "max-h-none" : "max-h-72"
-                                        }`}
-                                    >
-                    <code>{script.code}</code>
-                  </pre>
+                                    <pre className={`overflow-auto px-4 py-3.5 text-xs leading-relaxed text-slate-100 ${codeExpanded ? "max-h-none" : "max-h-72"}`}>
+                                        <code>{script.code}</code>
+                                    </pre>
                                 </div>
                             )}
                         </div>
                     )}
 
+                    {/* ── Runs tab ─────────────────────────────────────── */}
                     {activeTab === "runs" && (
                         <div className="space-y-4">
-                            <LiveExecutionPanel
-                                execution={liveExecution}
-                                onCancel={handleCancelLiveExecution}
-                            />
-
+                            <LiveExecutionPanel execution={liveExecution} onCancel={handleCancelLiveExecution} />
                             <ScheduledTestRunsPanel scriptId={script.id} />
-
-                            <ExecutionStatsPanel
-                                scriptId={script.id}
-                                refreshKey={historyRefreshKey}
-                            />
-
+                            <ExecutionStatsPanel scriptId={script.id} refreshKey={historyRefreshKey} />
                             <ExecutionHistoryPanel
                                 scriptId={script.id}
                                 refreshKey={historyRefreshKey}
@@ -545,45 +480,40 @@ export default function AutomationScriptCard({
                         </div>
                     )}
 
+                    {/* ── Notes tab ────────────────────────────────────── */}
                     {activeTab === "notes" && (
-                        <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="grid gap-3.5 lg:grid-cols-2">
                             {hasNotes || editing ? (
                                 <>
                                     {(script.explanation || editing) && (
-                                        <NoteBlock title="Explanation" icon={<Info className="h-4 w-4" />}>
+                                        <NoteBlock title="Explanation" icon={<Info className="h-[15px] w-[15px]" />}>
                                             {editing ? (
                                                 <textarea
                                                     value={explanation}
-                                                    onChange={(event) => setExplanation(event.target.value)}
+                                                    onChange={(e) => setExplanation(e.target.value)}
                                                     rows={4}
-                                                    className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
+                                                    className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-700 outline-none transition focus:border-[var(--cap-blue)]/40 focus:ring-2 focus:ring-[var(--cap-blue)]/10"
                                                 />
                                             ) : (
-                                                <p className="whitespace-pre-line text-sm leading-6 text-slate-600">
+                                                <p className="whitespace-pre-line text-[13px] leading-relaxed text-slate-600">
                                                     {script.explanation || "—"}
                                                 </p>
                                             )}
                                         </NoteBlock>
                                     )}
-
                                     {script.setupNotes && script.setupNotes.length > 0 && (
-                                        <NoteBlock title="Setup notes" icon={<Info className="h-4 w-4" />}>
+                                        <NoteBlock title="Setup notes" icon={<Info className="h-[15px] w-[15px]" />}>
                                             <BulletList items={script.setupNotes} />
                                         </NoteBlock>
                                     )}
-
                                     {script.warnings && script.warnings.length > 0 && (
-                                        <NoteBlock
-                                            title="Warnings"
-                                            icon={<TriangleAlert className="h-4 w-4" />}
-                                            tone="warning"
-                                        >
+                                        <NoteBlock title="Warnings" icon={<TriangleAlert className="h-[15px] w-[15px]" />} tone="warning">
                                             <BulletList items={script.warnings} />
                                         </NoteBlock>
                                     )}
                                 </>
                             ) : (
-                                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400 lg:col-span-2">
+                                <div className="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-[13px] text-slate-400 lg:col-span-2">
                                     No notes, setup instructions, or warnings for this script.
                                 </div>
                             )}
@@ -592,15 +522,13 @@ export default function AutomationScriptCard({
                 </div>
             )}
 
+            {/* ── Modals ───────────────────────────────────────────────── */}
             <RunExecutionModal
                 open={runModalOpen}
                 loading={runningLive}
-                onClose={() => {
-                    if (!runningLive) setRunModalOpen(false);
-                }}
+                onClose={() => { if (!runningLive) setRunModalOpen(false); }}
                 onStart={handleRunLive}
             />
-
             <ExecutionDetailModal
                 open={!!selectedExecution}
                 execution={selectedExecution}
@@ -610,12 +538,16 @@ export default function AutomationScriptCard({
     );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Sub-components
+──────────────────────────────────────────────────────────────── */
+
 function TabButton({
-                       active,
-                       icon,
-                       children,
-                       onClick,
-                   }: {
+    active,
+    icon,
+    children,
+    onClick,
+}: {
     active: boolean;
     icon: React.ReactNode;
     children: React.ReactNode;
@@ -625,7 +557,7 @@ function TabButton({
         <button
             type="button"
             onClick={onClick}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+            className={`inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-all ${
                 active
                     ? "bg-[var(--cap-blue)] text-white shadow-sm"
                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
@@ -638,12 +570,12 @@ function TabButton({
 }
 
 function MenuButton({
-                        icon,
-                        children,
-                        disabled,
-                        tone = "default",
-                        onClick,
-                    }: {
+    icon,
+    children,
+    disabled,
+    tone = "default",
+    onClick,
+}: {
     icon: React.ReactNode;
     children: React.ReactNode;
     disabled?: boolean;
@@ -655,7 +587,7 @@ function MenuButton({
             type="button"
             disabled={disabled}
             onClick={onClick}
-            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${
                 tone === "danger"
                     ? "text-red-600 hover:bg-red-50"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -669,7 +601,7 @@ function MenuButton({
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
     return (
-        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+        <p className="mb-1.5 text-[10.5px] font-bold uppercase tracking-[0.18em] text-slate-400">
             {children}
         </p>
     );
@@ -677,30 +609,29 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 function Pill({ children }: { children: React.ReactNode }) {
     return (
-        <span className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-500">
-      {children}
-    </span>
+        <span className="inline-flex items-center rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-500">
+            {children}
+        </span>
     );
 }
 
 function WarningMiniPill({ count }: { count: number }) {
     return (
-        <span className="inline-flex items-center gap-1 rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
-      <TriangleAlert className="h-3 w-3" />
+        <span className="inline-flex items-center gap-1 rounded-md border border-amber-100 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+            <TriangleAlert className="h-3 w-3" />
             {count} warning{count === 1 ? "" : "s"}
-    </span>
+        </span>
     );
 }
 
 function StatusPill({ status }: { status: AutomationScript["status"] }) {
     const styles: Record<string, string> = {
-        APPROVED: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-        DECLINED: "bg-red-50 text-red-700 ring-red-100",
-        EDITED: "bg-blue-50 text-blue-700 ring-blue-100",
+        APPROVED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+        DECLINED: "bg-red-50 text-red-700 ring-red-200",
+        EDITED: "bg-blue-50 text-blue-700 ring-blue-200",
         REMOVED: "bg-slate-100 text-slate-400 ring-slate-200",
-        GENERATED: "bg-amber-50 text-amber-700 ring-amber-100",
+        GENERATED: "bg-amber-50 text-amber-700 ring-amber-200",
     };
-
     const dots: Record<string, string> = {
         APPROVED: "bg-emerald-500",
         DECLINED: "bg-red-500",
@@ -709,67 +640,50 @@ function StatusPill({ status }: { status: AutomationScript["status"] }) {
         GENERATED: "bg-amber-500",
     };
 
-    const cls = styles[status] ?? "bg-amber-50 text-amber-700 ring-amber-100";
+    const cls = styles[status] ?? "bg-amber-50 text-amber-700 ring-amber-200";
     const dot = dots[status] ?? "bg-amber-500";
     const label = status.charAt(0) + status.slice(1).toLowerCase();
 
     return (
-        <span
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ${cls}`}
-        >
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+        <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.14em] ring-1 ${cls}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
             {label}
-    </span>
+        </span>
     );
 }
 
-function ExecutionStatusPill({
-                                 status,
-                             }: {
-    status: AutomationScriptExecution["status"];
-}) {
+function ExecutionStatusPill({ status }: { status: AutomationScriptExecution["status"] }) {
     const styles: Record<string, string> = {
         QUEUED: "bg-slate-50 text-slate-600 ring-slate-200",
-        RUNNING: "bg-blue-50 text-blue-700 ring-blue-100",
-        PASSED: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-        FAILED: "bg-red-50 text-red-700 ring-red-100",
-        TIMED_OUT: "bg-amber-50 text-amber-700 ring-amber-100",
+        RUNNING: "bg-blue-50 text-blue-700 ring-blue-200",
+        PASSED: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+        FAILED: "bg-red-50 text-red-700 ring-red-200",
+        TIMED_OUT: "bg-amber-50 text-amber-700 ring-amber-200",
         CANCELED: "bg-slate-100 text-slate-500 ring-slate-200",
     };
 
     const icon =
-        status === "RUNNING" ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
-        ) : status === "PASSED" ? (
-            <CheckCircle2 className="h-3 w-3" />
-        ) : status === "FAILED" ? (
-            <XCircle className="h-3 w-3" />
-        ) : status === "TIMED_OUT" ? (
-            <TriangleAlert className="h-3 w-3" />
-        ) : status === "CANCELED" ? (
-            <Square className="h-3 w-3" />
-        ) : (
-            <Clock className="h-3 w-3" />
-        );
+        status === "RUNNING" ? <Loader2 className="h-3 w-3 animate-spin" /> :
+        status === "PASSED" ? <CheckCircle2 className="h-3 w-3" /> :
+        status === "FAILED" ? <XCircle className="h-3 w-3" /> :
+        status === "TIMED_OUT" ? <TriangleAlert className="h-3 w-3" /> :
+        status === "CANCELED" ? <Square className="h-3 w-3" /> :
+        <Clock className="h-3 w-3" />;
 
     return (
-        <span
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ring-1 ${
-                styles[status] ?? styles.QUEUED
-            }`}
-        >
-      {icon}
+        <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.14em] ring-1 ${styles[status] ?? styles.QUEUED}`}>
+            {icon}
             {status}
-    </span>
+        </span>
     );
 }
 
 function NoteBlock({
-                       title,
-                       icon,
-                       children,
-                       tone = "default",
-                   }: {
+    title,
+    icon,
+    children,
+    tone = "default",
+}: {
     title: string;
     icon: React.ReactNode;
     children: React.ReactNode;
@@ -777,12 +691,12 @@ function NoteBlock({
 }) {
     const toneClass =
         tone === "warning"
-            ? "border-amber-100 bg-amber-50 text-amber-700"
+            ? "border-amber-100 bg-amber-50/80 text-amber-700"
             : "border-slate-200 bg-white text-slate-600";
 
     return (
-        <div className={`rounded-2xl border p-4 ${toneClass}`}>
-            <div className="mb-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em]">
+        <div className={`rounded-xl border p-4 ${toneClass}`}>
+            <div className="mb-3 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.18em]">
                 {icon}
                 {title}
             </div>
@@ -793,10 +707,10 @@ function NoteBlock({
 
 function BulletList({ items }: { items: string[] }) {
     return (
-        <ul className="space-y-2 text-sm leading-6">
-            {items.map((item, index) => (
-                <li key={`${item}-${index}`} className="flex items-start gap-2">
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-50" />
+        <ul className="space-y-2 text-[13px] leading-relaxed">
+            {items.map((item, i) => (
+                <li key={`${item}-${i}`} className="flex items-start gap-2">
+                    <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-40" />
                     <span>{item}</span>
                 </li>
             ))}
