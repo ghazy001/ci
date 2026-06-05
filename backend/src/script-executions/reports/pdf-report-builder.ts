@@ -34,9 +34,11 @@ function fillRect(
   radius = 0,
 ) {
   doc.save().fillColor(color);
-  radius > 0
-    ? doc.roundedRect(x, y, w, h, radius).fill()
-    : doc.rect(x, y, w, h).fill();
+  if (radius > 0) {
+    doc.roundedRect(x, y, w, h, radius).fill();
+  } else {
+    doc.rect(x, y, w, h).fill();
+  }
   doc.restore();
 }
 
