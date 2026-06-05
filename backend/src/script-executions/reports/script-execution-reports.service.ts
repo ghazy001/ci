@@ -14,9 +14,12 @@ import {
   Role,
   TestSuiteReportStatus,
 } from '@prisma/client';
-import PDFDocument from 'pdfkit';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLogsService } from '../../audit-logs/audit-logs.service';
+import {
+  buildDefectReportPdf,
+  buildSuiteReportPdf,
+} from './pdf-report-builder'; // ← new professional builder
 
 type AuditContext = {
   actor?: {
@@ -71,13 +74,7 @@ export class ScriptExecutionReportsService {
       include: {
         script: {
           include: {
-            workItem: {
-              select: {
-                id: true,
-                projectId: true,
-                title: true,
-              },
-            },
+            workItem: { select: { id: true, projectId: true, title: true } },
             testCase: {
               select: {
                 id: true,
@@ -91,25 +88,18 @@ export class ScriptExecutionReportsService {
       },
     });
 
-    if (!execution) {
-      throw new NotFoundException('Script execution not found');
-    }
+    if (!execution) throw new NotFoundException('Script execution not found');
 
     const shouldCreate =
       execution.status === AutomationScriptExecutionStatus.FAILED ||
       execution.status === AutomationScriptExecutionStatus.TIMED_OUT;
 
-    if (!shouldCreate) {
-      return null;
-    }
+    if (!shouldCreate) return null;
 
     const existing = await this.prisma.defectReport.findUnique({
       where: { executionId },
     });
-
-    if (existing) {
-      return existing;
-    }
+    if (existing) return existing;
 
     const defectReport = await this.prisma.defectReport.create({
       data: {
@@ -141,7 +131,6 @@ export class ScriptExecutionReportsService {
         environment: execution.environment,
         browser: execution.browser,
         targetUrl: execution.targetUrl,
-
         command: execution.command,
         exitCode: execution.exitCode,
         stdoutExcerpt: this.truncate(execution.stdout, 4000),
@@ -151,7 +140,6 @@ export class ScriptExecutionReportsService {
       },
     });
 
-    // Step 9.7 — Log defect report created
     await this.auditLogsService.create({
       actor: auditContext?.actor,
       action: AuditAction.DEFECT_REPORT_CREATED,
@@ -186,35 +174,19 @@ export class ScriptExecutionReportsService {
     auditContext?: AuditContext;
   }) {
     const executions = await this.prisma.automationScriptExecution.findMany({
-      where: {
-        id: {
-          in: params.executionIds,
-        },
-      },
+      where: { id: { in: params.executionIds } },
       include: {
-        script: {
-          include: {
-            workItem: {
-              select: {
-                projectId: true,
-              },
-            },
-          },
-        },
+        script: { include: { workItem: { select: { projectId: true } } } },
       },
-      orderBy: {
-        createdAt: 'asc',
-      },
+      orderBy: { createdAt: 'asc' },
     });
 
-    if (executions.length === 0) {
+    if (executions.length === 0)
       throw new NotFoundException('No executions found');
-    }
 
     const projectIds = Array.from(
       new Set(executions.map((e) => e.script.workItem.projectId)),
     );
-
     if (projectIds.length !== 1) {
       throw new Error(
         'All executions in a suite report must belong to the same project',
@@ -234,7 +206,6 @@ export class ScriptExecutionReportsService {
     const canceled = executions.filter((e) => e.status === 'CANCELED').length;
     const running = executions.filter((e) => e.status === 'RUNNING').length;
     const queued = executions.filter((e) => e.status === 'QUEUED').length;
-
     const passRate =
       total > 0 ? Number(((passed / total) * 100).toFixed(2)) : 0;
 
@@ -243,19 +214,14 @@ export class ScriptExecutionReportsService {
       .map((e) => e.completedAt!.getTime() - e.startedAt!.getTime());
 
     const durationMs =
-      durations.length > 0
-        ? durations.reduce((sum, current) => sum + current, 0)
-        : null;
-
-    const firstExecution = executions[0];
+      durations.length > 0 ? durations.reduce((sum, ms) => sum + ms, 0) : null;
 
     const report = await this.prisma.testSuiteReport.create({
       data: {
-        projectId: firstExecution.script.workItem.projectId,
+        projectId: executions[0].script.workItem.projectId,
         workItemId: this.sameValueOrNull(executions.map((e) => e.workItemId)),
         scriptId: this.sameValueOrNull(executions.map((e) => e.scriptId)),
         requestedById: params.requestedById,
-
         title:
           params.title ?? `Test Suite Report - ${new Date().toISOString()}`,
         status: this.resolveSuiteStatus({
@@ -267,7 +233,6 @@ export class ScriptExecutionReportsService {
           running,
           queued,
         }),
-
         total,
         passed,
         failed,
@@ -275,20 +240,16 @@ export class ScriptExecutionReportsService {
         canceled,
         running,
         queued,
-
         passRate,
         durationMs: durationMs ?? undefined,
-
         startedAt: this.minDate(executions.map((e) => e.startedAt)),
         completedAt: this.maxDate(executions.map((e) => e.completedAt)),
-
         summary: this.toPrismaJson({
           generatedFromExecutionIds: params.executionIds,
           failedExecutionIds: executions
             .filter((e) => e.status === 'FAILED' || e.status === 'TIMED_OUT')
             .map((e) => e.id),
         }),
-
         items: {
           create: executions.map((e) => ({
             executionId: e.id,
@@ -304,12 +265,9 @@ export class ScriptExecutionReportsService {
           })),
         },
       },
-      include: {
-        items: true,
-      },
+      include: { items: true },
     });
 
-    // Step 9.9 — Log suite report created
     await this.auditLogsService.create({
       actor: params.auditContext?.actor,
       action: AuditAction.TEST_SUITE_REPORT_CREATED,
@@ -353,42 +311,26 @@ export class ScriptExecutionReportsService {
   ) {
     const report = await this.prisma.defectReport.findUnique({
       where: { executionId },
-      include: {
-        project: {
-          select: {
-            id: true,
-          },
-        },
-      },
+      include: { project: { select: { id: true } } },
     });
 
-    if (!report) {
-      return null;
-    }
-
+    if (!report) return null;
     await this.ensureProjectAccess(report.project.id, userId, userRole);
-
     return report;
   }
 
   async getSuiteReport(reportId: string, userId: string, userRole: Role) {
     const report = await this.prisma.testSuiteReport.findUnique({
       where: { id: reportId },
-      include: {
-        items: true,
-      },
+      include: { items: true },
     });
 
-    if (!report) {
-      throw new NotFoundException('Test suite report not found');
-    }
-
+    if (!report) throw new NotFoundException('Test suite report not found');
     await this.ensureProjectAccess(report.projectId, userId, userRole);
-
     return report;
   }
 
-  // ─── PDF ─────────────────────────────────────────────────────────────────────
+  // ─── PDF — now delegates to pdf-report-builder ───────────────────────────────
 
   async buildDefectReportPdf(
     executionId: string,
@@ -401,12 +343,8 @@ export class ScriptExecutionReportsService {
       userId,
       userRole,
     );
+    if (!report) throw new NotFoundException('Defect report not found');
 
-    if (!report) {
-      throw new NotFoundException('Defect report not found');
-    }
-
-    // Step 9.8 — Log defect report PDF downloaded
     await this.auditLogsService.create({
       actor: auditContext?.actor,
       action: AuditAction.DEFECT_REPORT_PDF_DOWNLOADED,
@@ -418,36 +356,10 @@ export class ScriptExecutionReportsService {
       success: true,
       ipAddress: auditContext?.ipAddress,
       userAgent: auditContext?.userAgent,
-      metadata: {
-        executionId: report.executionId,
-      },
+      metadata: { executionId: report.executionId },
     });
 
-    return this.createPdfBuffer((doc) => {
-      doc.fontSize(20).text('Defect / Bug Report', { underline: true });
-      doc.moveDown();
-
-      doc.fontSize(12);
-      doc.text(`Title: ${report.title}`);
-      doc.text(`Status: ${report.status}`);
-      doc.text(`Severity: ${report.severity}`);
-      doc.text(`Environment: ${report.environment ?? '-'}`);
-      doc.text(`Browser: ${report.browser ?? '-'}`);
-      doc.text(`Target URL: ${report.targetUrl ?? '-'}`);
-      doc.text(`Exit Code: ${report.exitCode ?? '-'}`);
-      doc.moveDown();
-
-      doc.fontSize(14).text('Summary');
-      doc.fontSize(11).text(report.summary || '-');
-      doc.moveDown();
-
-      doc.fontSize(14).text('Failure Reason');
-      doc.fontSize(11).text(report.failureReason || '-');
-      doc.moveDown();
-
-      doc.fontSize(14).text('STDERR Excerpt');
-      doc.fontSize(9).text(report.stderrExcerpt || '-');
-    });
+    return buildDefectReportPdf(report); // ← professional builder
   }
 
   async buildSuiteReportPdf(
@@ -458,7 +370,6 @@ export class ScriptExecutionReportsService {
   ): Promise<Buffer> {
     const report = await this.getSuiteReport(reportId, userId, userRole);
 
-    // Step 9.10 — Log suite report PDF downloaded
     await this.auditLogsService.create({
       actor: auditContext?.actor,
       action: AuditAction.TEST_SUITE_REPORT_PDF_DOWNLOADED,
@@ -472,43 +383,7 @@ export class ScriptExecutionReportsService {
       userAgent: auditContext?.userAgent,
     });
 
-    return this.createPdfBuffer((doc) => {
-      doc.fontSize(20).text('Test Suite Report', { underline: true });
-      doc.moveDown();
-
-      doc.fontSize(12);
-      doc.text(`Title: ${report.title}`);
-      doc.text(`Status: ${report.status}`);
-      doc.text(`Total: ${report.total}`);
-      doc.text(`Passed: ${report.passed}`);
-      doc.text(`Failed: ${report.failed}`);
-      doc.text(`Timed Out: ${report.timedOut}`);
-      doc.text(`Canceled: ${report.canceled}`);
-      doc.text(`Running: ${report.running}`);
-      doc.text(`Queued: ${report.queued}`);
-      doc.text(`Pass Rate: ${report.passRate}%`);
-      doc.text(`Duration: ${report.durationMs ?? '-'} ms`);
-      doc.moveDown();
-
-      doc.fontSize(14).text('Executions');
-      doc.moveDown();
-
-      report.items.forEach((item, index) => {
-        doc
-          .fontSize(11)
-          .text(
-            `${index + 1}. Execution: ${item.executionId} | Status: ${item.status} | Duration: ${
-              item.durationMs ?? '-'
-            } ms`,
-          );
-
-        if (item.errorMessage) {
-          doc.fontSize(9).text(`Error: ${item.errorMessage}`);
-        }
-
-        doc.moveDown(0.5);
-      });
-    });
+    return buildSuiteReportPdf(report); // ← professional builder
   }
 
   // ─── Suite reports by script ─────────────────────────────────────────────────
@@ -519,59 +394,21 @@ export class ScriptExecutionReportsService {
     userRole: Role,
   ) {
     const script = await this.prisma.automationScript.findUnique({
-      where: {
-        id: scriptId,
-      },
-      include: {
-        workItem: {
-          select: {
-            projectId: true,
-          },
-        },
-      },
+      where: { id: scriptId },
+      include: { workItem: { select: { projectId: true } } },
     });
 
-    if (!script) {
-      throw new NotFoundException('Automation script not found');
-    }
-
+    if (!script) throw new NotFoundException('Automation script not found');
     await this.ensureProjectAccess(script.workItem.projectId, userId, userRole);
 
     return this.prisma.testSuiteReport.findMany({
-      where: {
-        scriptId,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        items: true,
-      },
+      where: { scriptId },
+      orderBy: { createdAt: 'desc' },
+      include: { items: true },
     });
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-  private createPdfBuffer(
-    build: (doc: PDFKit.PDFDocument) => void,
-  ): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({
-        margin: 50,
-        size: 'A4',
-      });
-
-      const chunks: Buffer[] = [];
-
-      doc.on('data', (chunk) => chunks.push(chunk));
-      doc.on('end', () => resolve(Buffer.concat(chunks)));
-      doc.on('error', reject);
-
-      build(doc);
-
-      doc.end();
-    });
-  }
 
   private inferSeverity(execution: any): DefectSeverity {
     const text = [
@@ -583,18 +420,11 @@ export class ScriptExecutionReportsService {
       .join('\n')
       .toLowerCase();
 
-    if (execution.status === 'TIMED_OUT') {
-      return DefectSeverity.HIGH;
-    }
-
-    if (text.includes('security') || text.includes('auth')) {
+    if (execution.status === 'TIMED_OUT') return DefectSeverity.HIGH;
+    if (text.includes('security') || text.includes('auth'))
       return DefectSeverity.CRITICAL;
-    }
-
-    if (text.includes('assert') || text.includes('expected')) {
+    if (text.includes('assert') || text.includes('expected'))
       return DefectSeverity.HIGH;
-    }
-
     return DefectSeverity.MEDIUM;
   }
 
@@ -622,18 +452,11 @@ export class ScriptExecutionReportsService {
     running: number;
     queued: number;
   }): TestSuiteReportStatus {
-    if (stats.failed > 0 || stats.timedOut > 0) {
+    if (stats.failed > 0 || stats.timedOut > 0)
       return TestSuiteReportStatus.FAILED;
-    }
-
-    if (stats.canceled > 0 || stats.running > 0 || stats.queued > 0) {
+    if (stats.canceled > 0 || stats.running > 0 || stats.queued > 0)
       return TestSuiteReportStatus.PARTIAL;
-    }
-
-    if (stats.passed === stats.total) {
-      return TestSuiteReportStatus.PASSED;
-    }
-
+    if (stats.passed === stats.total) return TestSuiteReportStatus.PASSED;
     return TestSuiteReportStatus.PARTIAL;
   }
 
@@ -644,14 +467,16 @@ export class ScriptExecutionReportsService {
 
   private minDate(values: Array<Date | null>) {
     const dates = values.filter(Boolean) as Date[];
-    if (dates.length === 0) return null;
-    return new Date(Math.min(...dates.map((d) => d.getTime())));
+    return dates.length === 0
+      ? null
+      : new Date(Math.min(...dates.map((d) => d.getTime())));
   }
 
   private maxDate(values: Array<Date | null>) {
     const dates = values.filter(Boolean) as Date[];
-    if (dates.length === 0) return null;
-    return new Date(Math.max(...dates.map((d) => d.getTime())));
+    return dates.length === 0
+      ? null
+      : new Date(Math.max(...dates.map((d) => d.getTime())));
   }
 
   private truncate(value: string | null | undefined, max: number) {
@@ -672,17 +497,10 @@ export class ScriptExecutionReportsService {
     userId: string,
     userRole: Role,
   ) {
-    if (userRole === Role.ADMIN) {
-      return;
-    }
+    if (userRole === Role.ADMIN) return;
 
     const membership = await this.prisma.projectMember.findUnique({
-      where: {
-        projectId_userId: {
-          projectId,
-          userId,
-        },
-      },
+      where: { projectId_userId: { projectId, userId } },
     });
 
     if (!membership) {
