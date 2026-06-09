@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
-  actions: read
 
 jobs:
   docker-build:
@@ -41,26 +39,11 @@ jobs:
           tags: qa-platform-${{ matrix.name }}:ci
 
       - name: Scan ${{ matrix.name }} image with Trivy
-        id: trivy_image
-        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: qa-platform-${{ matrix.name }}:ci
           vuln-type: os,library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          format: sarif
-          output: trivy-${{ matrix.name }}-image.sarif
+          format: table
           exit-code: 1
-
-      - name: Upload Trivy image result to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-${{ matrix.name }}-image.sarif
-          category: trivy-image-${{ matrix.name }}
-
-      - name: Fail if Trivy found high or critical image issues
-        if: steps.trivy_image.outcome == 'failure'
-        run: exit 1
-

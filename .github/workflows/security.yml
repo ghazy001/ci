@@ -10,8 +10,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
-  actions: read
 
 jobs:
   npm-audit:
@@ -19,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         app:
           - backend
@@ -83,11 +82,9 @@ jobs:
           - app: backend
             type: node
             lockfile: backend/package-lock.json
-
           - app: frontend
             type: node
             lockfile: frontend/package-lock.json
-
           - app: ai-service
             type: python
             lockfile: ai-service/requirements.txt
@@ -131,25 +128,9 @@ jobs:
         uses: snyk/actions/setup@master
 
       - name: Run Snyk scan
-        id: snyk_scan
-        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          snyk test \
-            --severity-threshold=high \
-            --sarif-file-output=../snyk-${{ matrix.app }}.sarif
-
-      - name: Upload Snyk result to GitHub Security
-        if: always() && hashFiles(format('snyk-{0}.sarif', matrix.app)) != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: snyk-${{ matrix.app }}.sarif
-          category: snyk-${{ matrix.app }}
-
-      - name: Fail if Snyk found high issues
-        if: steps.snyk_scan.outcome == 'failure'
-        run: exit 1
+        run: snyk test --severity-threshold=high
 
   trivy-filesystem:
     name: Trivy filesystem scan
@@ -160,8 +141,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy filesystem scan
-        id: trivy_fs
-        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
@@ -169,17 +148,5 @@ jobs:
           scanners: vuln,secret,misconfig
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          format: sarif
-          output: trivy-filesystem.sarif
+          format: table
           exit-code: 1
-
-      - name: Upload Trivy result to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: trivy-filesystem.sarif
-          category: trivy-filesystem
-
-      - name: Fail if Trivy found high issues
-        if: steps.trivy_fs.outcome == 'failure'
-        run: exit 1
