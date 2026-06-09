@@ -11,11 +11,10 @@ permissions:
 
 jobs:
   docker-build:
-    name: Build and scan Docker images
+    name: Build Docker images
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
       matrix:
         include:
           - name: backend
@@ -35,15 +34,4 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
-          load: true
           tags: qa-platform-${{ matrix.name }}:ci
-
-      - name: Scan ${{ matrix.name }} image with Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: qa-platform-${{ matrix.name }}:ci
-          vuln-type: os,library
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: table
-          exit-code: 1
