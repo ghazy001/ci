@@ -10,6 +10,8 @@ on:
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 jobs:
   npm-audit:
@@ -69,3 +71,115 @@ jobs:
 
       - name: Audit Python dependencies
         run: pip-audit -r requirements.txt
+
+  snyk:
+    name: Snyk scan - ${{ matrix.app }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: backend
+            type: node
+            lockfile: backend/package-lock.json
+
+          - app: frontend
+            type: node
+            lockfile: frontend/package-lock.json
+
+          - app: ai-service
+            type: python
+            lockfile: ai-service/requirements.txt
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        if: matrix.type == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.lockfile }}
+
+      - name: Install Node dependencies
+        if: matrix.type == 'node'
+        run: npm ci
+
+      - name: Set up Python
+        if: matrix.type == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ${{ matrix.lockfile }}
+
+      - name: Install Python dependencies
+        if: matrix.type == 'python'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Set up Snyk
+        uses: snyk/actions/setup@master
+
+      - name: Run Snyk scan
+        id: snyk_scan
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test \
+            --severity-threshold=high \
+            --sarif-file-output=../snyk-${{ matrix.app }}.sarif
+
+      - name: Upload Snyk result to GitHub Security
+        if: always() && hashFiles(format('snyk-{0}.sarif', matrix.app)) != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: snyk-${{ matrix.app }}.sarif
+          category: snyk-${{ matrix.app }}
+
+      - name: Fail if Snyk found high issues
+        if: steps.snyk_scan.outcome == 'failure'
+        run: exit 1
+
+  trivy-filesystem:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        id: trivy_fs
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-filesystem.sarif
+          exit-code: 1
+
+      - name: Upload Trivy result to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-filesystem.sarif
+          category: trivy-filesystem
+
+      - name: Fail if Trivy found high issues
+        if: steps.trivy_fs.outcome == 'failure'
+        run: exit 1
