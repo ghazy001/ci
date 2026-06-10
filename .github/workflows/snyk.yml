@@ -1,4 +1,4 @@
-name: Snyk Report Only
+name: Snyk Report Only + Dashboard Monitor
 
 on:
   pull_request:
@@ -19,8 +19,11 @@ concurrency:
 
 jobs:
   snyk-open-source:
-    name: Report dependency vulnerabilities
+    name: Snyk dependency report and dashboard monitor
     runs-on: ubuntu-latest
+
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
     steps:
       - name: Checkout code
@@ -42,10 +45,10 @@ jobs:
       - name: Check Snyk version
         run: snyk --version
 
+      # REPORT ONLY: these steps show results in GitHub Actions and create SARIF files.
+      # They do not block/fail the pipeline because of "|| true".
       - name: Snyk report for backend dependencies
         working-directory: backend
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           snyk test \
             --file=package-lock.json \
@@ -56,8 +59,6 @@ jobs:
 
       - name: Snyk report for frontend dependencies
         working-directory: frontend
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           snyk test \
             --file=package-lock.json \
@@ -68,8 +69,6 @@ jobs:
 
       - name: Snyk report for ai-service Python dependencies
         working-directory: ai-service
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           snyk test \
             --file=requirements.txt \
@@ -78,23 +77,62 @@ jobs:
             --sarif-file-output=../snyk-ai-service.sarif \
           || true
 
-      - name: Upload backend Snyk SARIF
+      # GitHub Security tab upload. These are still report-only.
+      - name: Upload backend Snyk SARIF to GitHub Security
         if: ${{ always() && hashFiles('snyk-backend.sarif') != '' }}
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: snyk-backend.sarif
           category: snyk-backend
 
-      - name: Upload frontend Snyk SARIF
+      - name: Upload frontend Snyk SARIF to GitHub Security
         if: ${{ always() && hashFiles('snyk-frontend.sarif') != '' }}
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: snyk-frontend.sarif
           category: snyk-frontend
 
-      - name: Upload ai-service Snyk SARIF
+      - name: Upload ai-service Snyk SARIF to GitHub Security
         if: ${{ always() && hashFiles('snyk-ai-service.sarif') != '' }}
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: snyk-ai-service.sarif
           category: snyk-ai-service
+
+      # DASHBOARD: monitor only main branch snapshots, not every pull request.
+      # This sends the project snapshot to your Snyk dashboard.
+      - name: Send backend snapshot to Snyk dashboard
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        working-directory: backend
+        run: |
+          snyk monitor \
+            --file=package-lock.json \
+            --package-manager=npm \
+            --project-name="${{ github.repository }}:backend" \
+            --target-reference="main" \
+          || true
+
+      - name: Send frontend snapshot to Snyk dashboard
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        working-directory: frontend
+        run: |
+          snyk monitor \
+            --file=package-lock.json \
+            --package-manager=npm \
+            --project-name="${{ github.repository }}:frontend" \
+            --target-reference="main" \
+          || true
+
+      - name: Send ai-service snapshot to Snyk dashboard
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        working-directory: ai-service
+        run: |
+          snyk monitor \
+            --file=requirements.txt \
+            --package-manager=pip \
+            --project-name="${{ github.repository }}:ai-service" \
+            --target-reference="main" \
+          || true
