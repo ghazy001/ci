@@ -1,0 +1,100 @@
+name: Snyk Report Only
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  snyk-open-source:
+    name: Report dependency vulnerabilities
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Snyk CLI
+        uses: snyk/actions/setup@master
+
+      - name: Check Snyk version
+        run: snyk --version
+
+      - name: Snyk report for backend dependencies
+        working-directory: backend
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test \
+            --file=package-lock.json \
+            --package-manager=npm \
+            --severity-threshold=high \
+            --sarif-file-output=../snyk-backend.sarif \
+          || true
+
+      - name: Snyk report for frontend dependencies
+        working-directory: frontend
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test \
+            --file=package-lock.json \
+            --package-manager=npm \
+            --severity-threshold=high \
+            --sarif-file-output=../snyk-frontend.sarif \
+          || true
+
+      - name: Snyk report for ai-service Python dependencies
+        working-directory: ai-service
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk test \
+            --file=requirements.txt \
+            --package-manager=pip \
+            --severity-threshold=high \
+            --sarif-file-output=../snyk-ai-service.sarif \
+          || true
+
+      - name: Upload backend Snyk SARIF
+        if: ${{ always() && hashFiles('snyk-backend.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: snyk-backend.sarif
+          category: snyk-backend
+
+      - name: Upload frontend Snyk SARIF
+        if: ${{ always() && hashFiles('snyk-frontend.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: snyk-frontend.sarif
+          category: snyk-frontend
+
+      - name: Upload ai-service Snyk SARIF
+        if: ${{ always() && hashFiles('snyk-ai-service.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: snyk-ai-service.sarif
+          category: snyk-ai-service
