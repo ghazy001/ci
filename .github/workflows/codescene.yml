@@ -21,35 +21,47 @@ jobs:
           fetch-depth: 0
 
       - name: Install CodeScene CLI
-        run: curl https://downloads.codescene.io/enterprise/cli/install-cs-tool.sh | sh
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      - name: Add CodeScene CLI to PATH
-        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          mkdir -p "$HOME/.local/bin"
 
-      - name: Check CodeScene CLI version
-        run: cs version
+          # Make cs available in this step and later GitHub Actions steps.
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+          curl -fsSL https://downloads.codescene.io/enterprise/cli/install-cs-tool.sh | sh
+
+          cs version
 
       - name: Run CodeScene on pull request changes
         if: github.event_name == 'pull_request'
-        # Beginner mode: do not block PRs at first. Remove this line later to make it a strict quality gate.
+        # Beginner mode: do not block PRs at first.
+        # Remove this line later to make it a strict quality gate.
         continue-on-error: true
         env:
           CS_ACCESS_TOKEN: ${{ secrets.CODESCENE_ACCESS_TOKEN }}
-          # Only needed for CodeScene Enterprise/on-prem. Leave the secret unset for CodeScene Cloud/SaaS.
+          # Only needed for CodeScene Enterprise/on-prem.
+          # Leave this secret unset for CodeScene Cloud/SaaS.
           CS_ONPREM_URL: ${{ secrets.CODESCENE_ONPREM_URL }}
         run: cs delta "${{ github.event.pull_request.base.sha }}" HEAD
 
       - name: Run CodeScene on latest main changes
         if: github.event_name == 'push'
-        # Beginner mode: do not block main pushes at first. Remove this line later to make it a strict quality gate.
+        # Beginner mode: do not block main pushes at first.
+        # Remove this line later to make it a strict quality gate.
         continue-on-error: true
         env:
           CS_ACCESS_TOKEN: ${{ secrets.CODESCENE_ACCESS_TOKEN }}
-          # Only needed for CodeScene Enterprise/on-prem. Leave the secret unset for CodeScene Cloud/SaaS.
+          # Only needed for CodeScene Enterprise/on-prem.
+          # Leave this secret unset for CodeScene Cloud/SaaS.
           CS_ONPREM_URL: ${{ secrets.CODESCENE_ONPREM_URL }}
         run: |
           BASE="${{ github.event.before }}"
+
           if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             BASE="HEAD~1"
           fi
+
           cs delta "$BASE" "${{ github.sha }}"
