@@ -26,14 +26,14 @@ jobs:
           set -euo pipefail
 
           mkdir -p "$HOME/.local/bin"
-
-          # Make cs available in this step and later GitHub Actions steps.
-          export PATH="$HOME/.local/bin:$PATH"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-          curl -fsSL https://downloads.codescene.io/enterprise/cli/install-cs-tool.sh | sh
+          curl -fsSL "https://downloads.codescene.io/enterprise/cli/cs-linux-amd64-latest.zip" -o /tmp/cs.zip
+          unzip -o /tmp/cs.zip -d /tmp/cs
 
-          cs version
+          install -m 0755 /tmp/cs/cs "$HOME/.local/bin/cs"
+
+          "$HOME/.local/bin/cs" version
 
       - name: Run CodeScene on pull request changes
         if: github.event_name == 'pull_request'
