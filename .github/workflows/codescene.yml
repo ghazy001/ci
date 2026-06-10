@@ -1,0 +1,55 @@
+name: CodeScene
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  codescene:
+    name: CodeScene code health check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout full Git history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install CodeScene CLI
+        run: curl https://downloads.codescene.io/enterprise/cli/install-cs-tool.sh | sh
+
+      - name: Add CodeScene CLI to PATH
+        run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check CodeScene CLI version
+        run: cs version
+
+      - name: Run CodeScene on pull request changes
+        if: github.event_name == 'pull_request'
+        # Beginner mode: do not block PRs at first. Remove this line later to make it a strict quality gate.
+        continue-on-error: true
+        env:
+          CS_ACCESS_TOKEN: ${{ secrets.CODESCENE_ACCESS_TOKEN }}
+          # Only needed for CodeScene Enterprise/on-prem. Leave the secret unset for CodeScene Cloud/SaaS.
+          CS_ONPREM_URL: ${{ secrets.CODESCENE_ONPREM_URL }}
+        run: cs delta "${{ github.event.pull_request.base.sha }}" HEAD
+
+      - name: Run CodeScene on latest main changes
+        if: github.event_name == 'push'
+        # Beginner mode: do not block main pushes at first. Remove this line later to make it a strict quality gate.
+        continue-on-error: true
+        env:
+          CS_ACCESS_TOKEN: ${{ secrets.CODESCENE_ACCESS_TOKEN }}
+          # Only needed for CodeScene Enterprise/on-prem. Leave the secret unset for CodeScene Cloud/SaaS.
+          CS_ONPREM_URL: ${{ secrets.CODESCENE_ONPREM_URL }}
+        run: |
+          BASE="${{ github.event.before }}"
+          if [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="HEAD~1"
+          fi
+          cs delta "$BASE" "${{ github.sha }}"
