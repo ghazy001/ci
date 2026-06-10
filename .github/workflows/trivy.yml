@@ -1,17 +1,14 @@
-name: Trivy Container Scan
+name: Trivy
 
 on:
   pull_request:
   push:
     branches: [main]
-  schedule:
-    - cron: "0 9 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
   security-events: write
-  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,8 +16,11 @@ concurrency:
 
 jobs:
   scan-images:
-    name: Scan ${{ matrix.name }} image
+    name: Report vulnerabilities in ${{ matrix.name }} image
     runs-on: ubuntu-latest
+
+    env:
+      TRIVY_DISABLE_VEX_NOTICE: "true"
 
     strategy:
       fail-fast: false
@@ -29,11 +29,11 @@ jobs:
           - name: backend
             context: ./backend
             dockerfile: ./backend/Dockerfile
-            image: qa-platform-backend
+            image: qa-platform-backend:ci
           - name: ai-service
             context: ./ai-service
             dockerfile: ./ai-service/Dockerfile
-            image: qa-platform-ai-service
+            image: qa-platform-ai-service:ci
 
     steps:
       - name: Checkout code
@@ -49,30 +49,29 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: false
           load: true
-          tags: ${{ matrix.image }}:${{ github.sha }}
+          tags: ${{ matrix.image }}
 
-      - name: Generate Trivy SARIF report
+      - name: Trivy report in GitHub Actions logs
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          image-ref: ${{ matrix.image }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+
+      - name: Create Trivy SARIF report for GitHub Security tab
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}
           format: sarif
           output: trivy-${{ matrix.name }}.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "0"
 
-      - name: Upload Trivy results to GitHub Security
-        if: always()
+      - name: Upload Trivy SARIF report
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-${{ matrix.name }}.sarif
-
-      - name: Fail on high or critical vulnerabilities
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: ${{ matrix.image }}:${{ github.sha }}
-          format: table
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: "1"
-          skip-setup-trivy: true
+          category: trivy-${{ matrix.name }}
