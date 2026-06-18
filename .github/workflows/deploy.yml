@@ -185,7 +185,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -195,7 +195,7 @@ jobs:
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
 
       - name: Build and push ai-service image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./ai-service
           file: ./ai-service/Dockerfile
