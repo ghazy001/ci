@@ -20,14 +20,17 @@ The pipeline is intentionally simple and professional:
 GitHub Push / Pull Request
   → Code Quality Checks
   → Automated Tests + Coverage
-  → Security Scans
+  → Dependency, Secret, and Code Security Scans
+  → CodeScene Code Health Analysis
   → SonarQube Cloud Analysis
   → Docker Build Validation
+  → Trivy Container Vulnerability Report
+  → Snyk Dependency Monitoring Dashboard
   → Railway Deployment
   → Monitoring with Sentry + Uptime Monitoring
 ```
 
-We avoided redundant tools and used one good tool per concern.
+The pipeline uses complementary tools for different concerns: tests validate behavior, SonarQube and CodeScene evaluate maintainability, CodeQL checks source-code security, Gitleaks protects secrets, Trivy scans Docker images, and Snyk provides dependency visibility in its dashboard.
 
 ---
 
@@ -258,7 +261,7 @@ This is important because CI should not depend on OpenAI, Groq, Ollama, or paid 
 
 ## 8. Security Workflow — `security.yml`
 
-We added the security workflow:
+We added the base security workflow:
 
 ```txt
 .github/workflows/security.yml
@@ -295,7 +298,26 @@ pip-audit -r requirements.txt
 
 This scans Python packages for known vulnerabilities.
 
----
+### Relationship With New Security Tools
+
+The base `security.yml` workflow is now complemented by additional security workflows:
+
+```txt
+CodeQL   → scans application source code for security bugs
+Gitleaks → scans the repository for leaked secrets
+Trivy    → scans Docker images and reports vulnerabilities
+Snyk     → monitors dependency vulnerabilities in the Snyk dashboard
+```
+
+Together, these tools cover different layers of the project:
+
+```txt
+source code
+dependencies
+secrets
+Docker images
+dashboard monitoring
+```
 
 ## 9. Dependabot
 
@@ -319,7 +341,375 @@ GitHub Actions versions
 This keeps the project safer over time without manually checking every package.
 
 ---
-## 10. SonarQube Cloud Analysis
+## 10. CodeScene Code Health Analysis — `codescene.yml`
+
+We added CodeScene as a code health and technical debt analysis workflow:
+
+```txt
+.github/workflows/codescene.yml
+```
+
+CodeScene is used to understand the long-term health of the codebase. It looks at both the code and the Git history to identify risk areas.
+
+CodeScene helps answer questions such as:
+
+```txt
+Which files are becoming hard to maintain?
+Which files are changed often and risky?
+Did this pull request make code health worse?
+Where should refactoring be prioritized?
+Are there hotspots or technical debt trends?
+```
+
+This is different from tests and linters:
+
+```txt
+Tests      → check if the app behaves correctly
+Linters    → check style and simple code problems
+SonarQube  → checks quality, smells, bugs, duplication, coverage
+CodeScene  → checks code health, hotspots, maintainability trends, and change risk
+```
+
+### CodeScene Workflow Behavior
+
+The CodeScene workflow runs on:
+
+```txt
+pull requests
+push to main
+manual trigger
+```
+
+The workflow uses full Git history:
+
+```yaml
+fetch-depth: 0
+```
+
+This is important because CodeScene uses Git history to understand how the code changes over time.
+
+### CodeScene Secret
+
+The CodeScene CLI requires a token stored in GitHub Secrets:
+
+```txt
+CODESCENE_ACCESS_TOKEN
+```
+
+Optional for self-hosted/on-prem CodeScene:
+
+```txt
+CODESCENE_ONPREM_URL
+```
+
+### Beginner-Safe Mode
+
+The first version of CodeScene is configured as beginner-safe:
+
+```yaml
+continue-on-error: true
+```
+
+That means CodeScene reports issues but does not block the pipeline yet.
+
+Later, when the team is comfortable with the results, this can be changed into a strict quality gate by removing:
+
+```yaml
+continue-on-error: true
+```
+
+---
+
+## 11. CodeQL Code Security Analysis — `codeql.yml`
+
+We added GitHub CodeQL security scanning:
+
+```txt
+.github/workflows/codeql.yml
+```
+
+CodeQL scans the source code itself for security problems and unsafe coding patterns.
+
+It analyzes:
+
+```txt
+backend + frontend  → JavaScript / TypeScript
+ai-service          → Python
+```
+
+CodeQL helps find issues such as:
+
+```txt
+SQL injection
+cross-site scripting
+unsafe user input handling
+path traversal
+dangerous coding patterns
+security bugs inside application code
+```
+
+### Why CodeQL Is Different
+
+CodeQL is not the same as Dependabot or npm audit.
+
+```txt
+Dependabot / npm audit / pip-audit → vulnerable third-party packages
+CodeQL                            → vulnerabilities inside our own source code
+```
+
+### CodeQL Workflow Behavior
+
+The workflow runs on:
+
+```txt
+pull requests
+push to main
+weekly schedule
+manual trigger
+```
+
+It uses:
+
+```yaml
+queries: +security-extended
+```
+
+This enables additional security-focused checks.
+
+No custom secret is required for the basic CodeQL workflow.
+
+Results appear in:
+
+```txt
+GitHub → Security → Code scanning
+```
+
+---
+
+## 12. Gitleaks Secret Scanning — `gitleaks.yml`
+
+We added Gitleaks:
+
+```txt
+.github/workflows/gitleaks.yml
+```
+
+Gitleaks scans the repository for accidentally committed secrets.
+
+It protects against pushing values such as:
+
+```txt
+API keys
+database URLs
+JWT secrets
+GitHub tokens
+private keys
+OpenAI keys
+Qdrant API keys
+Railway tokens
+Sentry tokens
+```
+
+This is important because the project uses many sensitive environment variables for production deployments.
+
+Examples of secrets that must never be committed:
+
+```env
+OPENAI_API_KEY=...
+DATABASE_URL=...
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+QDRANT_API_KEY=...
+SENTRY_DSN=...
+SNYK_TOKEN=...
+SONAR_TOKEN=...
+CODESCENE_ACCESS_TOKEN=...
+```
+
+Gitleaks runs on pushes and pull requests.
+
+If Gitleaks finds a real secret, the safe action is:
+
+```txt
+1. Remove the secret from the repository
+2. Rotate/revoke the exposed token immediately
+3. Create a new secret value
+4. Store the new value only in GitHub Secrets or Railway variables
+```
+
+---
+
+## 13. Trivy Container Vulnerability Reports — `trivy.yml`
+
+We added Trivy image scanning:
+
+```txt
+.github/workflows/trivy.yml
+```
+
+Trivy scans Docker images for vulnerable OS packages and application dependencies.
+
+It scans:
+
+```txt
+backend Docker image
+ai-service Docker image
+```
+
+Trivy helps answer:
+
+```txt
+Does this Docker image include vulnerable OS packages?
+Does the Python image contain vulnerable Python packages?
+Does the Node image contain vulnerable Node packages?
+Is the image safe enough to deploy?
+```
+
+### Report-Only Mode
+
+The current Trivy setup is intentionally report-only:
+
+```yaml
+exit-code: "0"
+```
+
+This means:
+
+```txt
+Trivy finds vulnerabilities → report them
+GitHub Actions workflow     → still passes
+Deployment                  → not blocked by Trivy
+```
+
+This is useful during the beginner/learning phase because the team can see issues without breaking the full CI/CD pipeline.
+
+The workflow still reports HIGH and CRITICAL vulnerabilities:
+
+```yaml
+severity: CRITICAL,HIGH
+```
+
+It ignores unfixed issues:
+
+```yaml
+ignore-unfixed: true
+```
+
+This reduces noise from vulnerabilities where no fix exists yet.
+
+### SARIF Upload
+
+Trivy also generates SARIF results for GitHub:
+
+```txt
+GitHub → Security → Code scanning
+```
+
+### Making Trivy Strict Later
+
+When the project is ready to enforce container security, change:
+
+```yaml
+exit-code: "0"
+```
+
+to:
+
+```yaml
+exit-code: "1"
+```
+
+Then HIGH or CRITICAL findings can block the workflow.
+
+---
+
+## 14. Snyk Dependency Monitoring Dashboard — `snyk.yml`
+
+We added Snyk as a report-only dependency security and monitoring workflow:
+
+```txt
+.github/workflows/snyk.yml
+```
+
+Snyk is used mainly for dependency visibility and dashboard monitoring.
+
+It scans:
+
+```txt
+backend    → npm dependencies
+frontend   → npm dependencies
+ai-service → Python dependencies
+```
+
+We are not using Snyk Container at this stage because Trivy already scans Docker images.
+
+We are not relying on Snyk Code at this stage because CodeQL already scans source-code security.
+
+### Snyk Secret
+
+Snyk requires a token stored in GitHub Secrets:
+
+```txt
+SNYK_TOKEN
+```
+
+### Snyk Workflow Behavior
+
+On pull requests:
+
+```txt
+snyk test runs
+results appear in GitHub Actions
+SARIF can be uploaded to GitHub Security
+the workflow does not block CI/CD
+```
+
+On push to main:
+
+```txt
+snyk test runs
+snyk monitor runs
+project snapshots are sent to the Snyk dashboard
+the workflow does not block CI/CD
+```
+
+### Report-Only Mode
+
+The workflow uses report-only behavior:
+
+```bash
+|| true
+```
+
+That means:
+
+```txt
+Snyk finds vulnerabilities → report them
+GitHub Actions workflow    → still passes
+Deployment                 → not blocked by Snyk
+```
+
+### Where Results Appear
+
+After the workflow runs on `main`, results can appear in:
+
+```txt
+Snyk Dashboard → Projects
+GitHub → Security → Code scanning
+GitHub Actions logs
+```
+
+Expected Snyk dashboard projects:
+
+```txt
+ai-test-automation-platform:backend
+ai-test-automation-platform:frontend
+ai-test-automation-platform:ai-service
+```
+
+---
+
+## 15. SonarQube Cloud Analysis
 
 We added a SonarQube Cloud stage to the CI pipeline to provide a higher-level code quality gate.
 
@@ -434,7 +824,7 @@ If the quality gate fails, the team should inspect SonarQube Cloud, fix the issu
 
 ---
 
-## 11. Docker Build Validation — `docker-build.yml`
+## 16. Docker Build Validation — `docker-build.yml`
 
 We added a Docker build validation workflow:
 
@@ -450,6 +840,13 @@ ai-service
 ```
 
 It does not deploy anything. It only proves that the Docker images can be built successfully.
+
+Docker build validation is separate from Trivy:
+
+```txt
+docker-build.yml → confirms the images can be built
+trivy.yml        → scans the built images for vulnerabilities
+```
 
 ### Backend Dockerfile
 
@@ -481,9 +878,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8001}
 
 The `${PORT:-8001}` part is important for Railway compatibility because Railway injects its own `PORT` variable.
 
----
-
-## 12. Deployment Platform — Railway
+## 17. Deployment Platform — Railway
 
 We switched from Render to Railway because Render required a card and the card was declined.
 
@@ -502,7 +897,7 @@ Qdrant is hosted separately on Qdrant Cloud.
 
 ---
 
-## 13. Railway Services
+## 18. Railway Services
 
 The Railway project contains these services:
 
@@ -646,7 +1041,7 @@ The worker does not need a public URL.
 
 ---
 
-## 14. Database Migrations
+## 19. Database Migrations
 
 After deploying the backend, Prisma migrations must be applied to the Railway PostgreSQL database.
 
@@ -670,7 +1065,7 @@ If a default admin is created, the password should be changed immediately after 
 
 ---
 
-## 15. Monitoring with Sentry
+## 20. Monitoring with Sentry
 
 Sentry is used for:
 
@@ -808,7 +1203,7 @@ SENTRY_DSN=your_ai_service_sentry_dsn
 
 ---
 
-## 16. Health Checks
+## 21. Health Checks
 
 Health endpoints were added so uptime monitoring can verify the services are online.
 
@@ -863,7 +1258,7 @@ HTTP 200
 
 ---
 
-## 17. Uptime Monitoring
+## 22. Uptime Monitoring
 
 We first considered Better Stack, but the free account only allowed one monitor in practice.
 
@@ -886,7 +1281,7 @@ Monitor the AI service /health URL
 
 ---
 
-## 18. Uptime Monitor Settings
+## 23. Uptime Monitor Settings
 
 ### Frontend Monitor
 
@@ -952,7 +1347,7 @@ The keyword `ai-service` should exist in the AI service health response.
 
 ---
 
-## 19. Recommended Monitoring Locations
+## 24. Recommended Monitoring Locations
 
 Because the developer is based in Tunisia, recommended check locations are mostly European:
 
@@ -973,7 +1368,7 @@ This avoids false alerts caused by one temporary regional network issue.
 
 ---
 
-## 20. How the Whole Pipeline Works
+## 25. How the Whole Pipeline Works
 
 The final pipeline looks like this:
 
@@ -988,11 +1383,21 @@ Frontend job runs lint, tests, build
   ↓
 AI service job runs Ruff and Pytest
   ↓
-Security workflow scans npm and Python dependencies
+Base security workflow scans npm and Python dependencies
+  ↓
+Gitleaks checks for leaked secrets
+  ↓
+CodeQL analyzes application source code security
+  ↓
+CodeScene analyzes code health, hotspots, and maintainability risk
   ↓
 SonarQube Cloud analyzes code quality, coverage, duplication, bugs, and security hotspots
   ↓
 Docker workflow validates backend and AI service images
+  ↓
+Trivy scans backend and AI service Docker images in report-only mode
+  ↓
+Snyk tests dependencies and sends main-branch snapshots to the Snyk dashboard
   ↓
 Railway auto-deploys connected services from GitHub
   ↓
@@ -1005,9 +1410,17 @@ Sentry catches runtime errors
 Uptime monitoring checks public URLs every few minutes
 ```
 
----
+The key idea is layered confidence:
 
-## 21. What Happens on a Normal Code Change
+```txt
+CI tests validate behavior
+security tools detect risks
+quality tools evaluate maintainability
+Docker workflows validate packaging
+monitoring tools watch production
+```
+
+## 26. What Happens on a Normal Code Change
 
 Example: a developer changes backend code.
 
@@ -1015,19 +1428,22 @@ Example: a developer changes backend code.
 1. Developer commits and pushes code
 2. GitHub Actions CI starts automatically
 3. Backend lint/test/build must pass
-4. Security checks run
-5. SonarQube Cloud analyzes code quality and the quality gate
-6. Docker image validation runs
-7. Railway detects the push and redeploys the backend
-8. If runtime errors happen, Sentry reports them
-9. If the service goes offline, uptime monitoring sends an alert
+4. Base dependency security checks run
+5. Gitleaks checks that no secrets were committed
+6. CodeQL scans source code security
+7. CodeScene reports code health and change risk
+8. SonarQube Cloud analyzes code quality and the quality gate
+9. Docker image validation runs
+10. Trivy reports container vulnerabilities without blocking the workflow
+11. Snyk reports dependency issues and updates the Snyk dashboard on main
+12. Railway detects the push and redeploys the relevant service
+13. If runtime errors happen, Sentry reports them
+14. If the service goes offline, uptime monitoring sends an alert
 ```
 
 This gives fast feedback and safer deployments.
 
----
-
-## 22. What Happens on a Broken Change
+## 27. What Happens on a Broken Change
 
 If code has a lint error:
 
@@ -1039,6 +1455,34 @@ Developer fixes the issue
 Developer pushes again
 ```
 
+If CodeQL, SonarQube, or base dependency security checks fail:
+
+```txt
+Developer opens the failing workflow
+Developer reads the reported issue
+Developer fixes the code or dependency
+Developer pushes again
+```
+
+If Trivy or Snyk reports vulnerabilities:
+
+```txt
+The workflow reports the issue
+The workflow does not fail because these tools are currently report-only
+Developer reviews the report
+Developer updates packages, base images, or Dockerfiles when possible
+```
+
+If Gitleaks reports a real secret:
+
+```txt
+The exposed secret must be considered compromised
+Developer removes it from the repository
+Developer rotates/revokes the token
+Developer creates a new secret in GitHub/Railway/Snyk/etc.
+Developer pushes the safe version
+```
+
 If production deploys but crashes:
 
 ```txt
@@ -1048,9 +1492,7 @@ Developer checks Railway logs
 Developer rolls forward with a fix
 ```
 
----
-
-## 23. Current Tooling Summary
+## 28. Current Tooling Summary
 
 | Concern | Tool | Purpose |
 |---|---|---|
@@ -1061,7 +1503,12 @@ Developer rolls forward with a fix
 | Python lint/test | Ruff, Pytest | Validate AI service quality |
 | Dependency security | npm audit, pip-audit | Detect vulnerable packages |
 | Dependency updates | Dependabot | Automated dependency PRs |
+| Source-code security | CodeQL | Detect security bugs inside JavaScript/TypeScript and Python code |
+| Secret scanning | Gitleaks | Detect accidentally committed API keys, tokens, and private keys |
+| Code health / technical debt | CodeScene | Detect hotspots, code health decline, maintainability risk, and risky changes |
+| Dependency monitoring dashboard | Snyk | Report dependency vulnerabilities and send snapshots to the Snyk dashboard |
 | Docker validation | Docker Build workflow | Validate deployable images |
+| Container vulnerability scanning | Trivy | Report HIGH/CRITICAL vulnerabilities in Docker images without blocking CI |
 | Code quality dashboard | SonarQube Cloud | Bugs, code smells, duplication, security hotspots, coverage, quality gate |
 | Hosting | Railway | Deploy app services and databases |
 | Database | Railway PostgreSQL | Main relational database |
@@ -1070,29 +1517,41 @@ Developer rolls forward with a fix
 | Error tracking | Sentry | Runtime errors and performance |
 | Uptime monitoring | UptimeRobot or HetrixTools | Public availability checks and downtime alerts |
 
----
-
-## 24. Recommended Next Improvements
+## 29. Recommended Next Improvements
 
 These are optional improvements for later:
 
 ```txt
 1. Add branch protection on main
-2. Require CI to pass before merging pull requests
-3. Add coverage thresholds
-4. Add end-to-end tests with Playwright
-5. Add production smoke tests after deploy
-6. Add Sentry release tracking
-7. Add Railway rollback documentation
-8. Add database backup strategy
-9. Add separate staging and production environments
+2. Require important CI checks to pass before merging pull requests
+3. Decide which report-only tools should become blocking later
+4. Add coverage thresholds
+5. Add end-to-end tests with Playwright
+6. Add production smoke tests after deploy
+7. Add Sentry release tracking
+8. Add Railway rollback documentation
+9. Add database backup strategy
+10. Add separate staging and production environments
+11. Add Hadolint for Dockerfile best practices
+12. Add OpenSSF Scorecard if the repository becomes public/open-source
+```
+
+Recommended strictness strategy:
+
+```txt
+Now:
+  Trivy and Snyk report only
+
+Later:
+  Block only CRITICAL vulnerabilities
+
+Mature stage:
+  Block HIGH and CRITICAL vulnerabilities after the team has a fix process
 ```
 
 For now, the pipeline is complete enough for a serious first CI/CD setup without being over-engineered.
 
----
-
-## 25. Useful Commands
+## 30. Useful Commands
 
 Run local backend checks:
 
@@ -1141,26 +1600,67 @@ Check AI service health:
 curl https://your-ai-service.up.railway.app/health
 ```
 
----
+Run Snyk locally if the CLI is installed:
 
-## 26. Final Result
+```bash
+cd backend
+snyk test
+snyk monitor
+```
+
+Run Trivy locally against a built image:
+
+```bash
+trivy image qa-platform-backend:local
+trivy image qa-platform-ai-service:local
+```
+
+Run Gitleaks locally if installed:
+
+```bash
+gitleaks detect --source .
+```
+
+## 31. Final Result
 
 At the end of today’s work, the project has a complete professional CI/CD foundation:
 
 ```txt
 Code quality checks
 Automated tests
-Security scans
+Dependency security scans
+Secret scanning with Gitleaks
+Source-code security scanning with CodeQL
+Code health and technical debt analysis with CodeScene
 SonarQube Cloud quality gate
 Docker build validation
+Trivy container vulnerability reporting
+Snyk dependency monitoring dashboard
 Railway deployment
 Sentry error tracking
 Uptime monitoring
 ```
 
-This setup gives confidence that the application can be changed, tested, deployed, and monitored safely.
+This setup gives confidence that the application can be changed, tested, deployed, scanned, and monitored safely.
 
-## 27. Final CI/CD Flow Diagram
+The current security posture is beginner-friendly:
+
+```txt
+Blocking:
+  lint/test/build failures
+  base npm audit / pip-audit policy
+  SonarQube quality gate if configured as blocking
+  CodeQL if GitHub code scanning is configured to enforce it
+
+Report-only:
+  CodeScene
+  Trivy
+  Snyk
+```
+
+The report-only tools still give useful visibility without blocking deployments while the team is learning and stabilizing the workflow.
+
+## 32. Final CI/CD Flow Diagram
 
 ```txt
 Developer on macOS
@@ -1171,18 +1671,18 @@ Developer on macOS
   ▼
 GitHub Repository
   │
-  ├───────────────────────────────────────────────┐
-  │                                               │
-  ▼                                               ▼
-GitHub Actions CI                           Security Workflow
-  │                                               │
-  ├─ Backend Job                                  ├─ npm audit backend
-  │    ├─ npm ci                                  ├─ npm audit frontend
-  │    ├─ prisma generate                         ├─ pip-audit ai-service
-  │    ├─ prisma migrate deploy                   └─ Dependabot PRs
-  │    ├─ ESLint
-  │    ├─ Jest tests + coverage
-  │    └─ NestJS build
+  ├──────────────────────────────────────────────────────────────┐
+  │                                                              │
+  ▼                                                              ▼
+GitHub Actions CI                                          Security Workflows
+  │                                                              │
+  ├─ Backend Job                                                 ├─ npm audit backend
+  │    ├─ npm ci                                                 ├─ npm audit frontend
+  │    ├─ prisma generate                                        ├─ pip-audit ai-service
+  │    ├─ prisma migrate deploy                                  ├─ Gitleaks secret scan
+  │    ├─ ESLint                                                 ├─ CodeQL code security scan
+  │    ├─ Jest tests + coverage                                  ├─ Snyk dependency report
+  │    └─ NestJS build                                           └─ Dependabot PRs
   │
   ├─ Frontend Job
   │    ├─ npm ci
@@ -1197,20 +1697,41 @@ GitHub Actions CI                           Security Workflow
        └─ Pytest + coverage
   │
   ▼
-SonarQube Cloud Analysis
+Code Health + Quality Analysis
   │
-  ├─ Reads backend/coverage/lcov.info
-  ├─ Reads frontend/coverage/lcov.info
-  ├─ Reads ai-service/coverage.xml
-  ├─ Checks bugs, code smells, duplication
-  ├─ Checks security hotspots
-  └─ Applies Quality Gate
+  ├─ CodeScene
+  │    ├─ code health
+  │    ├─ hotspots
+  │    ├─ technical debt trends
+  │    └─ risky changes
+  │
+  └─ SonarQube Cloud
+       ├─ reads backend/coverage/lcov.info
+       ├─ reads frontend/coverage/lcov.info
+       ├─ reads ai-service/coverage.xml
+       ├─ checks bugs, code smells, duplication
+       ├─ checks security hotspots
+       └─ applies Quality Gate
   │
   ▼
-Docker Build Validation
+Docker Validation + Container Scanning
   │
-  ├─ Build backend Docker image
-  └─ Build ai-service Docker image
+  ├─ Docker Build Validation
+  │    ├─ build backend Docker image
+  │    └─ build ai-service Docker image
+  │
+  └─ Trivy Report-Only Scan
+       ├─ scan backend image
+       ├─ scan ai-service image
+       ├─ report HIGH/CRITICAL vulnerabilities
+       └─ upload SARIF to GitHub Security
+  │
+  ▼
+Snyk Dashboard Monitoring
+  │
+  ├─ snyk test on backend/frontend/ai-service
+  ├─ snyk monitor on main branch
+  └─ project snapshots appear in Snyk Dashboard
   │
   ▼
 Railway Deployment
@@ -1241,4 +1762,6 @@ Production Monitoring
        └─ checks ai-service /health
 ```
 
-This flow means every code change is checked before and after deployment: CI validates the code, SonarQube evaluates maintainability and quality, Railway deploys the services, and monitoring tools alert you if production has runtime errors or downtime.
+This flow means every code change is checked before and after deployment: CI validates the code, security tools report risks, SonarQube and CodeScene evaluate maintainability and quality, Railway deploys the services, and monitoring tools alert you if production has runtime errors or downtime.
+
+
