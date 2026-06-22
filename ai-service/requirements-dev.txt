@@ -1,7 +1,7 @@
 amqp==5.3.1
 annotated-doc==0.0.4
 annotated-types==0.7.0
-anyio==4.12.1
+anyio==4.13.0
 async-timeout==5.0.1
 billiard==4.2.4
 boolean.py==5.0
