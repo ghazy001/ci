@@ -52,7 +52,7 @@ protobuf==7.34.1
 py-serializable==2.1.0
 pydantic==2.13.4
 pydantic-settings==2.11.0
-pydantic_core==2.46.4
+pydantic_core==2.47.0
 pyee==13.0.1
 Pygments==2.20.0
 pyparsing==3.3.2
